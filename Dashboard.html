@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#1a73e8;--pd:#1557b0;--pl:#e8f0fe;
+  --s:#1e8e3e;--sb:#e6f4ea;
+  --e:#d93025;--eb:#fce8e6;
+  --w:#f9a825;--wb:#fef8e1;
+  --bg:#f0f4f8;--sur:#fff;--bdr:#dadce0;
+  --t1:#202124;--t2:#5f6368;--t3:#9aa0a6;
+  --fn:'Google Sans',Roboto,Arial,sans-serif;
+}
+body{font-family:var(--fn);font-size:13px;color:var(--t1);background:var(--bg);min-height:100vh}
+
+/* ── Header ── */
+.hdr{background:var(--p);color:#fff;padding:14px 16px 12px}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.hdr-clinic{font-size:15px;font-weight:600;letter-spacing:-.2px}
+.hdr-date{font-size:10px;opacity:.82}
+.refresh-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:5px;color:#fff;font-family:var(--fn);font-size:11px;font-weight:500;padding:4px 10px;cursor:pointer;transition:background .12s}
+.refresh-btn:hover{background:rgba(255,255,255,.28)}
+.refresh-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Quick nav ── */
+.quick-nav{display:flex;gap:4px;padding:8px;background:var(--sur);border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.qn-btn{flex:1;min-width:80px;padding:7px 4px;border:1px solid var(--bdr);border-radius:6px;background:var(--bg);font-family:var(--fn);font-size:11px;font-weight:500;color:var(--t2);cursor:pointer;text-align:center;transition:all .12s;white-space:nowrap}
+.qn-btn:hover{border-color:var(--p);color:var(--p);background:var(--pl)}
+
+/* ── Section wrapper ── */
+.section{margin:8px;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;overflow:hidden}
+.sec-hdr{font-size:10px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:var(--t2);padding:8px 12px 6px;border-bottom:1px solid var(--bdr);background:var(--bg);display:flex;align-items:center;justify-content:space-between}
+.sec-hdr-action{font-size:10px;font-weight:500;color:var(--p);cursor:pointer;letter-spacing:0;text-transform:none}
+.sec-hdr-action:hover{text-decoration:underline}
+
+/* ── KPI grid ── */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bdr)}
+.kpi{background:var(--sur);padding:12px 13px}
+.kpi-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.kpi-val{font-size:22px;font-weight:600;line-height:1;color:var(--t1)}
+.kpi-val.rev{color:var(--s)}
+.kpi-val.exp{color:var(--e)}
+.kpi-val.pft{color:var(--p)}
+.kpi-val.loss{color:var(--e)}
+.kpi-sub{font-size:10px;color:var(--t3);margin-top:4px}
+
+/* ── Today strip ── */
+.today-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bdr)}
+.ts-item{background:var(--sur);text-align:center;padding:9px 4px}
+.ts-val{font-size:18px;font-weight:600;line-height:1}
+.ts-lbl{font-size:9px;color:var(--t3);margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
+.ts-val.blue{color:var(--p)}
+.ts-val.green{color:var(--s)}
+.ts-val.orange{color:#f57c00}
+.ts-val.red{color:var(--e)}
+
+/* ── 7-day bar chart ── */
+.chart-wrap{padding:12px 12px 6px}
+.chart-bars{display:flex;align-items:flex-end;gap:3px;height:72px;margin-bottom:4px}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%}
+.chart-bar-wrap{flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:1px}
+.bar-rev{background:var(--p);border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
+.bar-exp{background:#ef9a9a;border-radius:2px 2px 0 0;min-height:0;transition:height .3s}
+.chart-lbl{font-size:9px;color:var(--t3);text-align:center;white-space:nowrap}
+.chart-legend{display:flex;gap:12px;padding:0 4px 4px;justify-content:flex-end}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+
+/* ── Today schedule ── */
+.appt-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f1f3f4}
+.appt-row:last-child{border-bottom:none}
+.appt-time{font-size:11px;font-weight:600;color:var(--p);min-width:58px;background:var(--pl);border-radius:4px;padding:3px 6px;text-align:center;flex-shrink:0}
+.appt-info{flex:1;min-width:0}
+.appt-name{font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.appt-meta{font-size:10px;color:var(--t3);margin-top:1px}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sd-Scheduled{background:var(--p)}
+.sd-Completed{background:var(--s)}
+.sd-Cancelled{background:var(--e)}
+.sd-No-Show{background:var(--t3)}
+.sd-Rescheduled{background:var(--w)}
+.appt-fee{font-size:11px;font-weight:500;color:var(--s);flex-shrink:0}
+
+/* ── Recent patients ── */
+.pt-row{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #f1f3f4}
+.pt-row:last-child{border-bottom:none}
+.pt-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.pt-info{flex:1;min-width:0}
+.pt-name{font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-sub{font-size:10px;color:var(--t3);margin-top:1px}
+.pt-status{font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px}
+.st-Active{background:var(--sb);color:var(--s)}
+.st-Inactive{background:var(--eb);color:var(--e)}
+
+/* ── Expense categories ── */
+.cat-row{padding:7px 12px;border-bottom:1px solid #f1f3f4}
+.cat-row:last-child{border-bottom:none}
+.cat-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.cat-name{font-size:12px;font-weight:500}
+.cat-amt{font-size:12px;font-weight:600;color:var(--e)}
+.cat-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.cat-fill{height:100%;background:#ef9a9a;border-radius:2px}
+
+/* ── Payment modes ── */
+.pay-chips{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px}
+.pay-chip{font-size:11px;padding:4px 10px;border-radius:12px;background:var(--pl);color:var(--p);font-weight:500;border:1px solid #c2d7fc}
+
+/* ── Loading ── */
+.loading{text-align:center;padding:48px 16px;color:var(--t3)}
+.ld{display:inline-flex;gap:5px}
+.ld span{width:7px;height:7px;border-radius:50%;background:var(--p);animation:bounce .75s ease-in-out infinite}
+.ld span:nth-child(2){animation-delay:.15s}
+.ld span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+.empty-row{text-align:center;padding:16px;color:var(--t3);font-size:12px}
+.err-box{margin:12px;padding:12px;background:var(--eb);border:1px solid #f5c6c2;border-radius:8px;font-size:12px;color:var(--e)}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr" id="hdr">
+  <div class="hdr-top">
+    <div class="hdr-clinic" id="clinicName">Loading…</div>
+    <button class="refresh-btn" id="refreshBtn" onclick="load()" disabled>↻ Refresh</button>
+  </div>
+  <div class="hdr-date" id="hdrDate"></div>
+</div>
+
+<!-- Quick navigation -->
+<div class="quick-nav">
+  <button class="qn-btn" onclick="go('openNewPatientForm')">➕ Patient</button>
+  <button class="qn-btn" onclick="go('openNewAppointmentForm')">📅 Book Appt</button>
+  <button class="qn-btn" onclick="go('openSaleForm')">🧾 Sale</button>
+  <button class="qn-btn" onclick="go('openExpenseForm')">💸 Expense</button>
+  <button class="qn-btn" onclick="go('openTodaySchedule')">📆 Schedule</button>
+</div>
+
+<!-- Main content -->
+<div id="main">
+  <div class="loading"><div class="ld"><span></span><span></span><span></span></div><br>Loading dashboard…</div>
+</div>
+
+<script>
+let C = '₹';
+const AV = ['#1a73e8','#0f9d58','#e53935','#8e24aa','#f4511e','#0288d1','#00838f'];
+const avC = n => { let h=0; for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff; return AV[Math.abs(h)%AV.length]; };
+const ini = n => (n||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = (n,d=0) => Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtAmt = n => C + fmt(n,2);
+
+function go(fn) { google.script.run[fn](); }
+
+function load() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  document.getElementById('main').innerHTML =
+    '<div class="loading"><div class="ld"><span></span><span></span><span></span></div></div>';
+
+  google.script.run
+    .withSuccessHandler(render)
+    .withFailureHandler(e => {
+      document.getElementById('main').innerHTML =
+        '<div class="err-box">Failed to load: ' + esc(e.message) + '</div>';
+      btn.disabled = false; btn.textContent = '↻ Refresh';
+    })
+    .getDashboardData();
+}
+
+function render(d) {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = false; btn.textContent = '↻ Refresh';
+
+  if (!d || d.error) {
+    document.getElementById('main').innerHTML =
+      '<div class="err-box">Error: ' + esc(d ? d.error : 'No data') + '</div>';
+    return;
+  }
+
+  C = d.currency || '₹';
+  document.documentElement.style.setProperty('--p', d.color || '#1a73e8');
+  document.getElementById('clinicName').textContent = d.clinicName;
+  document.getElementById('hdrDate').textContent    = d.todayDisp;
+
+  const isProfit = d.monthProfit >= 0;
+
+  // ── Month KPIs ─────────────────────────────────────────────
+  const kpiHtml = `
+  <div class="section">
+    <div class="sec-hdr">This Month</div>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-lbl">Revenue</div>
+        <div class="kpi-val rev">${fmtAmt(d.monthRevenue)}</div>
+        <div class="kpi-sub">${d.apptThisMonth} appointments</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Expenses</div>
+        <div class="kpi-val exp">${fmtAmt(d.monthExpAmt)}</div>
+        <div class="kpi-sub">${C}${fmt(d.todayExpAmt,2)} today</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">${isProfit ? 'Net Profit' : 'Net Loss'}</div>
+        <div class="kpi-val ${isProfit ? 'pft' : 'loss'}">${fmtAmt(Math.abs(d.monthProfit))}</div>
+        <div class="kpi-sub">${d.profitMargin}% margin</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Patients</div>
+        <div class="kpi-val">${fmt(d.totalPatients)}</div>
+        <div class="kpi-sub">${d.newThisMonth} new · ${d.activePatients} active</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Today strip ────────────────────────────────────────────
+  const todayHtml = `
+  <div class="section">
+    <div class="sec-hdr">Today
+      <span class="sec-hdr-action" onclick="go('openTodaySchedule')">View Schedule →</span>
+    </div>
+    <div class="today-strip">
+      <div class="ts-item"><div class="ts-val blue">${d.apptToday}</div><div class="ts-lbl">Appointments</div></div>
+      <div class="ts-item"><div class="ts-val green">${d.completedToday}</div><div class="ts-lbl">Completed</div></div>
+      <div class="ts-item"><div class="ts-val orange">${d.pendingToday}</div><div class="ts-lbl">Pending</div></div>
+      <div class="ts-item"><div class="ts-val rev" style="font-size:15px">${C}${fmt(d.todayRevenue,0)}</div><div class="ts-lbl">Revenue</div></div>
+    </div>
+  </div>`;
+
+  // ── 7-day trend chart ──────────────────────────────────────
+  const trend    = d.trend7 || [];
+  const maxVal   = Math.max(1, ...trend.map(t => Math.max(t.revenue, t.expense)));
+  const bars     = trend.map(t => {
+    const rh = Math.max(2, Math.round(t.revenue / maxVal * 64));
+    const eh = Math.max(0, Math.round(t.expense / maxVal * 64));
+    const today = t.date === (d.trend7[6] && d.trend7[6].date);
+    return `
+    <div class="chart-col">
+      <div class="chart-bar-wrap">
+        <div class="bar-rev" style="height:${rh}px" title="${C}${fmt(t.revenue,2)}"></div>
+        <div class="bar-exp" style="height:${eh}px" title="${C}${fmt(t.expense,2)}"></div>
+      </div>
+      <div class="chart-lbl" style="${today?'color:var(--p);font-weight:600':''}">${esc(t.label)}</div>
+    </div>`;
+  }).join('');
+
+  const chartHtml = `
+  <div class="section">
+    <div class="sec-hdr">7-Day Trend</div>
+    <div class="chart-wrap">
+      <div class="chart-bars">${bars}</div>
+      <div class="chart-legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--p)"></div>Revenue</div>
+        <div class="leg"><div class="leg-dot" style="background:#ef9a9a"></div>Expenses</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Today's schedule ───────────────────────────────────────
+  const schedRows = (d.scheduleToday || []).map(a => `
+    <div class="appt-row">
+      <div class="appt-time">${esc(a.timeSlot)}</div>
+      <div class="appt-info">
+        <div class="appt-name">${esc(a.patientName)}</div>
+        <div class="appt-meta">Dr. ${esc(a.doctor)} · ${esc(a.apptType)}</div>
+      </div>
+      ${a.fee ? `<div class="appt-fee">${C}${fmt(a.fee,0)}</div>` : ''}
+      <div class="status-dot sd-${a.status || 'Scheduled'}"></div>
+    </div>`).join('');
+
+  const schedHtml = `
+  <div class="section">
+    <div class="sec-hdr">Today's Appointments
+      <span class="sec-hdr-action" onclick="go('openNewAppointmentForm')">+ Book →</span>
+    </div>
+    ${schedRows || '<div class="empty-row">No appointments today</div>'}
+  </div>`;
+
+  // ── Recent patients ────────────────────────────────────────
+  const ptRows = (d.recentPatients || []).map(p => `
+    <div class="pt-row">
+      <div class="pt-av" style="background:${avC(p.fullName)}">${ini(p.fullName)}</div>
+      <div class="pt-info">
+        <div class="pt-name">${esc(p.fullName)}</div>
+        <div class="pt-sub">${esc(p.patientId)} · ${esc(p.phone)}</div>
+      </div>
+      <span class="pt-status st-${p.status||'Active'}">${p.status||'Active'}</span>
+    </div>`).join('');
+
+  const ptHtml = `
+  <div class="section">
+    <div class="sec-hdr">Recent Patients
+      <span class="sec-hdr-action" onclick="go('openNewPatientForm')">+ Register →</span>
+    </div>
+    ${ptRows || '<div class="empty-row">No patients yet</div>'}
+  </div>`;
+
+  // ── Expense breakdown ──────────────────────────────────────
+  const cats    = d.topExpCats || [];
+  const maxCat  = cats.length ? cats[0].amt : 1;
+  const catRows = cats.map(c => `
+    <div class="cat-row">
+      <div class="cat-top">
+        <span class="cat-name">${esc(c.cat)}</span>
+        <span class="cat-amt">${fmtAmt(c.amt)}</span>
+      </div>
+      <div class="cat-bar">
+        <div class="cat-fill" style="width:${Math.round(c.amt/maxCat*100)}%"></div>
+      </div>
+    </div>`).join('');
+
+  const expHtml = cats.length ? `
+  <div class="section">
+    <div class="sec-hdr">Top Expense Categories (Month)</div>
+    ${catRows}
+  </div>` : '';
+
+  // ── Payment modes ──────────────────────────────────────────
+  const modes = d.payModes || {};
+  const modeEntries = Object.entries(modes).sort((a,b) => b[1]-a[1]);
+  const payHtml = modeEntries.length ? `
+  <div class="section">
+    <div class="sec-hdr">Payment Modes (Month)</div>
+    <div class="pay-chips">
+      ${modeEntries.map(([m,v]) =>
+        `<div class="pay-chip">${esc(m)}: ${fmtAmt(v)}</div>`
+      ).join('')}
+    </div>
+  </div>` : '';
+
+  // ── Outstanding payments alert ─────────────────────────────
+  const pendingHtml = d.pendingPay > 0 ? `
+  <div class="section" style="border-color:#f9a825">
+    <div class="sec-hdr" style="background:#fef8e1;color:#c17700;border-bottom-color:#f9a825">
+      Outstanding Payments
+    </div>
+    <div style="padding:10px 12px;font-size:13px;color:#7f5200">
+      ${fmtAmt(d.pendingPay)} pending/partial across all sales
+    </div>
+  </div>` : '';
+
+  // ── Assemble ──────────────────────────────────────────────
+  document.getElementById('main').innerHTML =
+    kpiHtml + todayHtml + chartHtml + schedHtml + ptHtml +
+    expHtml + payHtml + pendingHtml +
+    '<div style="height:16px"></div>';
+}
+
+// Boot
+load();
+</script>
+</body>
+</html>

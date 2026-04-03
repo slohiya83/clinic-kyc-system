@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --p: #1a73e8; --pd: #1557b0; --pl: #e8f0fe;
+  --s: #1e8e3e; --sb: #e6f4ea;
+  --e: #d93025; --eb: #fce8e6;
+  --w: #f9a825; --wb: #fef8e1;
+  --bg: #f8f9fa; --sur: #fff; --bdr: #dadce0;
+  --t1: #202124; --t2: #5f6368; --t3: #9aa0a6;
+  --r: 8px; --fn: 'Google Sans',Roboto,Arial,sans-serif;
+}
+body { font-family:var(--fn); font-size:13px; color:var(--t1); background:var(--bg); }
+
+/* ── Header ── */
+.hdr { background:var(--p); color:#fff; padding:13px 16px 11px; position:sticky; top:0; z-index:10; }
+.hdr h1 { font-size:14px; font-weight:500; }
+.hdr p  { font-size:11px; opacity:.82; margin-top:2px; }
+
+/* ── Patient selector ── */
+.patient-selector { margin:10px; }
+.search-wrap { position:relative; }
+.search-wrap svg { position:absolute; left:9px; top:50%; transform:translateY(-50%); width:14px; height:14px; fill:var(--t3); pointer-events:none; }
+.patient-search { width:100%; border:1.5px solid var(--bdr); border-radius:6px; padding:8px 10px 8px 30px; font-family:var(--fn); font-size:13px; outline:none; transition:border-color .15s; }
+.patient-search:focus { border-color:var(--p); box-shadow:0 0 0 2px rgba(26,115,232,.12); }
+.patient-search.invalid { border-color:var(--e); }
+
+.patient-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--sur); border:1px solid var(--bdr); border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.12); z-index:20; max-height:200px; overflow-y:auto; display:none; }
+.patient-dropdown.open { display:block; }
+.pt-opt { padding:8px 12px; cursor:pointer; border-bottom:1px solid #f1f3f4; transition:background .1s; }
+.pt-opt:last-child { border-bottom:none; }
+.pt-opt:hover { background:var(--pl); }
+.pt-opt-name { font-weight:500; font-size:13px; }
+.pt-opt-sub  { font-size:11px; color:var(--t2); margin-top:1px; }
+.pt-opt-nf   { padding:10px 12px; color:var(--t3); font-size:12px; }
+
+.patient-chip { display:none; align-items:center; gap:8px; background:var(--pl); border:1px solid #c2d7fc; border-radius:6px; padding:7px 10px; }
+.patient-chip.show { display:flex; }
+.chip-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
+.chip-info { flex:1; min-width:0; }
+.chip-name  { font-weight:500; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chip-sub   { font-size:11px; color:var(--t2); }
+.chip-clear { background:none; border:none; cursor:pointer; color:var(--t3); font-size:16px; padding:0 2px; line-height:1; }
+.chip-clear:hover { color:var(--e); }
+
+/* ── Sections ── */
+.section { background:var(--sur); border:1px solid var(--bdr); border-radius:var(--r); margin:10px; overflow:hidden; }
+.section-title { font-size:10px; font-weight:600; letter-spacing:.8px; text-transform:uppercase; color:var(--t2); padding:9px 13px 7px; border-bottom:1px solid var(--bdr); background:var(--bg); }
+.sec-body { padding:12px 13px; }
+
+/* ── Fields ── */
+.field { margin-bottom:11px; }
+.field:last-child { margin-bottom:0; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+label { display:block; font-size:11px; font-weight:500; color:var(--t2); margin-bottom:3px; letter-spacing:.2px; }
+label .req { color:var(--e); margin-left:1px; }
+
+input, select, textarea {
+  width:100%; border:1.5px solid var(--bdr); border-radius:6px;
+  padding:7px 9px; font-family:var(--fn); font-size:13px; color:var(--t1);
+  background:var(--sur); outline:none; transition:border-color .14s, box-shadow .14s; -webkit-appearance:none;
+}
+input:focus, select:focus, textarea:focus { border-color:var(--p); box-shadow:0 0 0 2px rgba(26,115,232,.12); }
+input.invalid, select.invalid { border-color:var(--e); }
+textarea { resize:vertical; min-height:52px; }
+
+.field-err { display:none; font-size:11px; color:var(--e); margin-top:3px; }
+.field-err.show { display:block; }
+
+/* ── Slot grid ── */
+.slot-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; max-height:144px; overflow-y:auto; padding:2px; }
+.slot-btn {
+  padding:6px 4px; border:1.5px solid var(--bdr); border-radius:5px;
+  background:var(--sur); font-family:var(--fn); font-size:11px; font-weight:500;
+  color:var(--t1); cursor:pointer; text-align:center; transition:all .12s;
+  white-space:nowrap;
+}
+.slot-btn:hover:not(.busy):not(.selected) { border-color:var(--p); color:var(--p); background:var(--pl); }
+.slot-btn.selected { background:var(--p); border-color:var(--p); color:#fff; }
+.slot-btn.busy { background:#f1f3f4; border-color:#e0e0e0; color:#bdbdbd; cursor:not-allowed; font-style:italic; }
+.slot-none { font-size:12px; color:var(--t3); padding:8px 4px; grid-column:1/-1; text-align:center; }
+#slotInput { display:none; }
+.slot-label { font-size:11px; color:var(--t2); margin-bottom:6px; font-weight:500; }
+
+/* ── Conflict warning ── */
+.conflict-warn { display:none; background:var(--wb); border:1px solid #f9a825; border-radius:6px; padding:8px 10px; font-size:12px; color:#7f5200; margin:8px 10px 0; line-height:1.4; }
+.conflict-warn.show { display:block; }
+
+/* ── Status badge (edit mode) ── */
+.status-row { display:flex; align-items:center; gap:8px; }
+.status-indicator { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* ── Footer ── */
+.footer { position:sticky; bottom:0; background:var(--sur); border-top:1px solid var(--bdr); padding:9px 12px; display:flex; gap:8px; z-index:10; }
+.btn { flex:1; padding:9px 12px; border-radius:6px; border:none; font-family:var(--fn); font-size:13px; font-weight:500; cursor:pointer; transition:background .14s,opacity .14s; text-align:center; }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.btn-primary { background:var(--p); color:#fff; }
+.btn-primary:hover:not(:disabled) { background:var(--pd); }
+.btn-sec { background:var(--bg); color:var(--t2); border:1px solid var(--bdr); }
+.btn-sec:hover:not(:disabled) { background:#e8eaed; }
+
+/* ── Toast ── */
+#toast { position:fixed; bottom:62px; left:10px; right:10px; padding:9px 13px; border-radius:var(--r); font-size:12px; color:#fff; text-align:center; opacity:0; transition:opacity .25s; pointer-events:none; z-index:100; line-height:1.4; font-weight:500; }
+#toast.show { opacity:1; }
+#toast.ok   { background:var(--s); }
+#toast.err  { background:var(--e); }
+#toast.warn { background:var(--w); color:#333; }
+
+.spinner { display:inline-block; width:13px; height:13px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-right:4px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<script>
+  const EDIT_MODE = <?= editMode ? 'true' : 'false' ?>;
+  const APPT_ID   = <?= JSON.stringify(apptId || '') ?>;
+</script>
+
+<!-- ── Header ── -->
+<div class="hdr" id="hdr">
+  <h1 id="hdr-title">Book Appointment</h1>
+  <p id="hdr-sub">Loading…</p>
+</div>
+
+<form id="apptForm" novalidate>
+
+  <!-- ── Patient Selector ── -->
+  <div class="section">
+    <div class="section-title">Patient</div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Search Patient <span class="req">*</span></label>
+        <div style="position:relative">
+          <div class="search-wrap" id="ptSearchWrap">
+            <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" class="patient-search" id="ptSearch"
+                   placeholder="Name, phone, or Patient ID…"
+                   oninput="handlePatientSearch(this.value)"
+                   autocomplete="off">
+          </div>
+          <div class="patient-dropdown" id="ptDropdown"></div>
+        </div>
+        <div class="patient-chip" id="ptChip">
+          <div class="chip-avatar" id="chipAvatar">?</div>
+          <div class="chip-info">
+            <div class="chip-name" id="chipName">—</div>
+            <div class="chip-sub"  id="chipSub">—</div>
+          </div>
+          <button class="chip-clear" type="button" onclick="clearPatient()" title="Change patient">×</button>
+        </div>
+        <input type="hidden" id="patientId" name="patientId">
+        <div class="field-err" id="err-patient">Please select a patient.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Appointment Details ── -->
+  <div class="section">
+    <div class="section-title">Appointment Details</div>
+    <div class="sec-body">
+
+      <div class="grid2">
+        <div class="field">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" id="apptDate" name="apptDate"
+                 onchange="onDateOrDoctorChange(); clearErr(this)"
+                 oninput="clearErr(this)">
+          <div class="field-err" id="err-apptDate">Select a date.</div>
+        </div>
+        <div class="field">
+          <label>Type <span class="req">*</span></label>
+          <select id="apptType" name="apptType" onchange="clearErr(this)">
+            <option value="">Select…</option>
+            <option>Consultation</option>
+            <option>Follow-Up</option>
+            <option>Emergency</option>
+            <option>Procedure</option>
+            <option>Check-Up</option>
+          </select>
+          <div class="field-err" id="err-apptType">Select appointment type.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Doctor <span class="req">*</span></label>
+        <div style="display:flex; gap:6px; align-items:flex-start; flex-direction:column">
+          <select id="doctorSelect" onchange="onDoctorSelectChange(this.value)"
+                  style="width:100%">
+            <option value="">Select doctor…</option>
+            <!-- Populated from bootstrap -->
+          </select>
+          <input type="text" id="doctor" name="doctor"
+                 placeholder="Or type a new doctor name"
+                 oninput="onDateOrDoctorChange(); clearErr(this)"
+                 style="width:100%; font-size:12px">
+        </div>
+        <div class="field-err" id="err-doctor">Enter a doctor name.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Time Slot Grid ── -->
+  <div class="section">
+    <div class="section-title">Time Slot <span style="color:#e53935;margin-left:1px">*</span></div>
+    <div class="sec-body">
+      <div class="slot-label" id="slotLabel">Select date and doctor first</div>
+      <div class="slot-grid" id="slotGrid">
+        <div class="slot-none">Select date &amp; doctor to see available slots</div>
+      </div>
+      <input type="hidden" id="timeSlot" name="timeSlot">
+      <div class="field-err" id="err-timeSlot">Please select a time slot.</div>
+    </div>
+  </div>
+
+  <!-- Conflict warning -->
+  <div class="conflict-warn" id="conflictWarn"></div>
+
+  <!-- ── Clinical & Admin ── -->
+  <div class="section">
+    <div class="section-title">Clinical &amp; Admin</div>
+    <div class="sec-body">
+
+      <div class="grid2">
+        <div class="field">
+          <label>Consultation Fee</label>
+          <input type="number" id="consultationFee" name="consultationFee"
+                 placeholder="0" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>Follow-Up Date</label>
+          <input type="date" id="followUpDate" name="followUpDate">
+        </div>
+      </div>
+
+      <!-- Diagnosis + Prescription — only shown in edit mode -->
+      <div id="clinicalFields" style="display:none">
+        <div class="field" style="margin-top:10px">
+          <label>Diagnosis</label>
+          <textarea id="diagnosis" name="diagnosis" rows="2"
+                    placeholder="Diagnosis after consultation…"></textarea>
+        </div>
+        <div class="field">
+          <label>Prescription</label>
+          <textarea id="prescription" name="prescription" rows="2"
+                    placeholder="Medicines, dosage, instructions…"></textarea>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="status" name="status">
+            <option value="Scheduled">Scheduled</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="No-Show">No-Show</option>
+            <option value="Rescheduled">Rescheduled</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" id="notesField" style="margin-top:10px">
+        <label>Notes</label>
+        <textarea id="notes" name="notes" rows="2"
+                  placeholder="Any additional notes…"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="height:12px"></div>
+</form>
+
+<!-- ── Footer ── -->
+<div class="footer">
+  <button class="btn btn-sec" type="button" onclick="resetForm()">Clear</button>
+  <button class="btn btn-primary" type="button" id="submitBtn" onclick="handleSubmit()">
+    Book Appointment
+  </button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+let selectedPatient = null;
+let allTimeSlots    = [];
+let searchTimer     = null;
+let busySlots       = [];
+
+const AVATAR_COLORS = ['#1a73e8','#0f9d58','#e53935','#8e24aa','#f4511e','#0288d1'];
+function avatarColor(name) {
+  let h = 0;
+  for (const c of (name||'')) h = (h*31 + c.charCodeAt(0)) & 0xffff;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+function initials(name) {
+  return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────
+google.script.run
+  .withSuccessHandler(function(cfg) {
+    if (!cfg) return;
+
+    // Apply branding
+    document.documentElement.style.setProperty('--p', cfg.primaryColor || '#1a73e8');
+
+    // Set today as min date
+    document.getElementById('apptDate').min = cfg.todayIso;
+    if (!EDIT_MODE) document.getElementById('apptDate').value = cfg.todayIso;
+
+    // Populate time slots
+    allTimeSlots = cfg.timeSlots || [];
+
+    // Populate known doctors
+    const sel = document.getElementById('doctorSelect');
+    (cfg.doctors || []).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = opt.textContent = d;
+      sel.appendChild(opt);
+    });
+
+    // Sidebar sub-title
+    document.getElementById('hdr-sub').textContent =
+      cfg.clinicName + (EDIT_MODE ? ' — Edit Appointment' : ' — New Appointment');
+
+    // Edit mode setup
+    if (EDIT_MODE && APPT_ID) {
+      document.getElementById('hdr-title').textContent = 'Edit Appointment';
+      document.getElementById('submitBtn').textContent = 'Update Appointment';
+      document.getElementById('clinicalFields').style.display = 'block';
+
+      google.script.run
+        .withSuccessHandler(prefillForm)
+        .withFailureHandler(e => toast('Failed to load appointment: ' + e.message, 'err'))
+        .getAppointmentById(APPT_ID);
+    }
+  })
+  .getApptBootstrap();
+
+
+// ── Edit pre-fill ─────────────────────────────────────────────
+function prefillForm(data) {
+  if (!data) { toast('Appointment not found', 'err'); return; }
+
+  // Fake selected patient so chip shows
+  selectedPatient = {
+    patientId: data.patientId,
+    fullName : data.patientName,
+    phone    : ''
+  };
+  showPatientChip(selectedPatient);
+
+  document.getElementById('apptDate').value       = data.apptDate       || '';
+  document.getElementById('apptType').value       = data.apptType       || '';
+  document.getElementById('doctor').value         = data.doctor         || '';
+  document.getElementById('timeSlot').value       = data.timeSlot       || '';
+  document.getElementById('consultationFee').value= data.consultationFee|| '';
+  document.getElementById('followUpDate').value   = data.followUpDate   || '';
+  document.getElementById('diagnosis').value      = data.diagnosis      || '';
+  document.getElementById('prescription').value   = data.prescription   || '';
+  document.getElementById('notes').value          = data.notes          || '';
+  document.getElementById('status').value         = data.status         || 'Scheduled';
+
+  // Load slots then pre-select the saved one
+  loadSlots(data.doctor, data.apptDate, data.timeSlot);
+}
+
+
+// ── Patient search ────────────────────────────────────────────
+function handlePatientSearch(val) {
+  clearTimeout(searchTimer);
+  const dd = document.getElementById('ptDropdown');
+
+  if (!val || val.length < 2) { dd.classList.remove('open'); return; }
+
+  searchTimer = setTimeout(function() {
+    google.script.run
+      .withSuccessHandler(renderPatientDropdown)
+      .searchPatientsForAppt(val);
+  }, 260);
+}
+
+function renderPatientDropdown(patients) {
+  const dd = document.getElementById('ptDropdown');
+  if (!patients.length) {
+    dd.innerHTML = '<div class="pt-opt-nf">No active patients found</div>';
+  } else {
+    dd.innerHTML = patients.map(p => `
+      <div class="pt-opt" onclick="selectPatient(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+        <div class="pt-opt-name">${esc(p.fullName)}</div>
+        <div class="pt-opt-sub">${esc(p.patientId)} · ${esc(p.phone)}${p.age ? ' · ' + p.age + ' yrs' : ''}</div>
+      </div>`).join('');
+  }
+  dd.classList.add('open');
+}
+
+function selectPatient(p) {
+  selectedPatient = p;
+  document.getElementById('patientId').value = p.patientId;
+  document.getElementById('ptSearch').value  = '';
+  document.getElementById('ptDropdown').classList.remove('open');
+  clearErr(document.getElementById('ptSearch'));
+  showPatientChip(p);
+}
+
+function showPatientChip(p) {
+  const chip = document.getElementById('ptChip');
+  const col  = avatarColor(p.fullName);
+  document.getElementById('chipAvatar').textContent = initials(p.fullName);
+  document.getElementById('chipAvatar').style.background = col;
+  document.getElementById('chipName').textContent = p.fullName;
+  document.getElementById('chipSub').textContent  = p.patientId + (p.phone ? ' · ' + p.phone : '');
+  document.getElementById('ptSearchWrap').style.display = 'none';
+  chip.classList.add('show');
+}
+
+function clearPatient() {
+  selectedPatient = null;
+  document.getElementById('patientId').value = '';
+  document.getElementById('ptChip').classList.remove('show');
+  document.getElementById('ptSearchWrap').style.display = 'block';
+  document.getElementById('ptSearch').value = '';
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!document.getElementById('ptSearchWrap').contains(e.target) &&
+      !document.getElementById('ptDropdown').contains(e.target)) {
+    document.getElementById('ptDropdown').classList.remove('open');
+  }
+});
+
+
+// ── Doctor / date change → reload slots ──────────────────────
+function onDoctorSelectChange(val) {
+  document.getElementById('doctor').value = val;
+  onDateOrDoctorChange();
+}
+
+function onDateOrDoctorChange() {
+  const doctor = document.getElementById('doctor').value.trim();
+  const date   = document.getElementById('apptDate').value;
+  if (doctor && date) loadSlots(doctor, date, null);
+}
+
+function loadSlots(doctor, date, preselect) {
+  document.getElementById('slotGrid').innerHTML =
+    '<div class="slot-none">Loading slots…</div>';
+  document.getElementById('slotLabel').textContent = 'Available slots for ' + date;
+
+  google.script.run
+    .withSuccessHandler(function(busy) {
+      busySlots = busy || [];
+      renderSlots(preselect);
+    })
+    .getSlotsForDoctor(doctor, date);
+}
+
+function renderSlots(preselect) {
+  const grid     = document.getElementById('slotGrid');
+  const selected = preselect || document.getElementById('timeSlot').value;
+
+  if (!allTimeSlots.length) {
+    grid.innerHTML = '<div class="slot-none">No time slots configured</div>';
+    return;
+  }
+
+  grid.innerHTML = allTimeSlots.map(slot => {
+    const isBusy = busySlots.includes(slot);
+    const isSel  = slot === selected;
+    const cls    = isBusy ? 'busy' : isSel ? 'selected' : '';
+    return `<button type="button" class="slot-btn ${cls}"
+              onclick="${isBusy ? '' : `selectSlot('${slot}')`}"
+              ${isBusy ? 'disabled title="Already booked"' : ''}>${slot}</button>`;
+  }).join('');
+
+  if (preselect) document.getElementById('timeSlot').value = preselect;
+}
+
+function selectSlot(slot) {
+  document.getElementById('timeSlot').value = slot;
+  clearErr(document.getElementById('timeSlot'));
+  hideConflict();
+
+  // Visual update
+  document.querySelectorAll('.slot-btn').forEach(b => {
+    b.classList.toggle('selected', b.textContent.trim() === slot);
+  });
+
+  // Live conflict check
+  const doctor = document.getElementById('doctor').value.trim();
+  const date   = document.getElementById('apptDate').value;
+  if (doctor && date) {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.conflict) showConflict(res);
+        else hideConflict();
+      })
+      .checkConflict(doctor, date, slot, EDIT_MODE ? APPT_ID : null);
+  }
+}
+
+
+// ── Conflict banner ───────────────────────────────────────────
+function showConflict(res) {
+  const el = document.getElementById('conflictWarn');
+  el.textContent = '⚠ ' + (res.message || 'This slot is already booked.');
+  el.classList.add('show');
+}
+function hideConflict() {
+  document.getElementById('conflictWarn').classList.remove('show');
+}
+
+
+// ── Submit ────────────────────────────────────────────────────
+function handleSubmit() {
+  if (!validate()) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>' + (EDIT_MODE ? 'Updating…' : 'Booking…');
+
+  const data = {
+    patientId      : document.getElementById('patientId').value,
+    doctor         : document.getElementById('doctor').value.trim(),
+    apptDate       : document.getElementById('apptDate').value,
+    timeSlot       : document.getElementById('timeSlot').value,
+    apptType       : document.getElementById('apptType').value,
+    consultationFee: document.getElementById('consultationFee').value,
+    followUpDate   : document.getElementById('followUpDate').value,
+    notes          : document.getElementById('notes').value,
+    diagnosis      : document.getElementById('diagnosis')   ? document.getElementById('diagnosis').value   : '',
+    prescription   : document.getElementById('prescription') ? document.getElementById('prescription').value : '',
+    status         : document.getElementById('status')       ? document.getElementById('status').value       : 'Scheduled'
+  };
+
+  if (EDIT_MODE) {
+    google.script.run
+      .withSuccessHandler(onResult)
+      .withFailureHandler(onErr)
+      .updateAppointment(APPT_ID, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(onResult)
+      .withFailureHandler(onErr)
+      .bookAppointment(data);
+  }
+}
+
+function onResult(res) {
+  resetBtn();
+  if (res.success) {
+    toast('✓ ' + res.message, 'ok');
+    if (!EDIT_MODE) setTimeout(resetForm, 2200);
+  } else if (res.conflict) {
+    showConflict(res);
+    toast(res.message, 'warn');
+  } else {
+    toast(res.message, 'err');
+  }
+}
+function onErr(e) { resetBtn(); toast('Error: ' + e.message, 'err'); }
+function resetBtn() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = false;
+  btn.innerHTML = EDIT_MODE ? 'Update Appointment' : 'Book Appointment';
+}
+
+
+// ── Validation ────────────────────────────────────────────────
+function validate() {
+  let ok = true;
+  if (!document.getElementById('patientId').value) {
+    document.getElementById('ptSearch').classList.add('invalid');
+    document.getElementById('err-patient').classList.add('show');
+    ok = false;
+  }
+  ['apptDate','apptType','doctor'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el.value.trim()) { el.classList.add('invalid'); document.getElementById('err-'+id).classList.add('show'); ok = false; }
+  });
+  if (!document.getElementById('timeSlot').value) {
+    document.getElementById('err-timeSlot').classList.add('show');
+    ok = false;
+  }
+  if (!ok) toast('Please fill all required fields', 'err');
+  return ok;
+}
+function clearErr(el) {
+  el.classList.remove('invalid');
+  const e = document.getElementById('err-' + el.id);
+  if (e) e.classList.remove('show');
+}
+
+
+// ── Reset ─────────────────────────────────────────────────────
+function resetForm() {
+  if (EDIT_MODE) return;
+  clearPatient();
+  document.getElementById('apptForm').reset();
+  document.getElementById('slotGrid').innerHTML =
+    '<div class="slot-none">Select date &amp; doctor to see available slots</div>';
+  document.getElementById('timeSlot').value = '';
+  hideConflict();
+  document.getElementById('slotLabel').textContent = 'Select date and doctor first';
+}
+
+// ── Utilities ─────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = ''; }, 3500);
+}
+</script>
+</body>
+</html>

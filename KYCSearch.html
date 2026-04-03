@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #1a73e8;
+    --primary-light: #e8f0fe;
+    --success: #1e8e3e;
+    --success-bg: #e6f4ea;
+    --danger: #d93025;
+    --danger-bg: #fce8e6;
+    --warn: #f9a825;
+    --surface: #ffffff;
+    --bg: #f8f9fa;
+    --border: #dadce0;
+    --text: #202124;
+    --muted: #5f6368;
+    --radius: 8px;
+    --font: 'Google Sans', Roboto, Arial, sans-serif;
+  }
+  body { font-family: var(--font); font-size: 13px; color: var(--text); background: var(--bg); }
+
+  /* ── Header ── */
+  .header { background: var(--primary); color: #fff; padding: 14px 16px 12px; }
+  .header h1 { font-size: 15px; font-weight: 500; }
+  .header p  { font-size: 11px; opacity: .85; margin-top: 2px; }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    background: var(--surface);
+    text-align: center;
+    padding: 8px 4px;
+  }
+  .stat-val { font-size: 20px; font-weight: 600; color: var(--primary); line-height: 1; }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: .3px; }
+
+  /* ── Search box ── */
+  .search-wrap {
+    padding: 10px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .search-input-wrap { position: relative; }
+  .search-input-wrap svg {
+    position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+    width: 15px; height: 15px; fill: var(--muted); pointer-events: none;
+  }
+  #searchInput {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 36px 8px 34px;
+    font-size: 13px;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color .15s;
+    background: var(--bg);
+  }
+  #searchInput:focus { border-color: var(--primary); background: var(--surface); }
+  #clearBtn {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 17px; line-height: 1; display: none; padding: 0 2px;
+  }
+  .search-hint { font-size: 11px; color: var(--muted); margin-top: 5px; text-align: center; }
+
+  /* ── Results container ── */
+  #resultsWrap { padding: 8px; }
+
+  /* ── Empty & loading states ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 36px; margin-bottom: 8px; }
+  .empty-state p     { font-size: 13px; }
+
+  .loading-dots { display:inline-flex; gap:4px; align-items:center; }
+  .loading-dots span {
+    width:6px; height:6px; border-radius:50%; background:var(--primary);
+    animation: bounce .8s ease-in-out infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay:.15s; }
+  .loading-dots span:nth-child(3) { animation-delay:.3s; }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+  /* ── Patient card ── */
+  .patient-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: box-shadow .15s;
+  }
+  .patient-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .card-header:hover { background: #f1f3f4; }
+
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 14px; color: #fff; flex-shrink: 0;
+  }
+
+  .card-info { flex: 1; min-width: 0; }
+  .card-name  { font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-pid   { font-size: 11px; color: var(--muted); margin-top: 1px; font-family: monospace; letter-spacing: .3px; }
+
+  .status-chip {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    letter-spacing: .4px;
+  }
+  .status-active   { background: var(--success-bg); color: var(--success); }
+  .status-inactive { background: var(--danger-bg);  color: var(--danger); }
+  .status-deceased { background: #f1f3f4; color: var(--muted); }
+
+  .card-expand { font-size: 16px; color: var(--muted); flex-shrink: 0; transition: transform .2s; }
+  .card-expand.open { transform: rotate(180deg); }
+
+  /* ── Card body (expandable) ── */
+  .card-body { display: none; padding: 10px 12px; background: #fafafa; }
+  .card-body.open { display: block; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-bottom: 10px; }
+  .detail-item {}
+  .detail-lbl { font-size: 10px; color: var(--muted); letter-spacing: .3px; text-transform: uppercase; }
+  .detail-val { font-size: 12px; color: var(--text); margin-top: 1px; font-weight: 500; word-break: break-word; }
+  .detail-val.na { color: var(--muted); font-weight: 400; font-style: italic; }
+
+  /* ── Card actions ── */
+  .card-actions { display: flex; gap: 6px; }
+  .action-btn {
+    flex: 1; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); cursor: pointer; font-family: var(--font);
+    font-size: 11px; font-weight: 500; color: var(--text); text-align: center;
+    transition: background .12s, border-color .12s;
+  }
+  .action-btn:hover { background: var(--bg); }
+  .action-btn.primary { background: var(--primary-light); color: var(--primary); border-color: #c2d7fc; }
+  .action-btn.primary:hover { background: #d2e3fc; }
+  .action-btn.deactivate { color: var(--danger); border-color: #f5c6c2; }
+  .action-btn.deactivate:hover { background: var(--danger-bg); }
+  .action-btn.activate { color: var(--success); border-color: #a8d5b5; }
+  .action-btn.activate:hover { background: var(--success-bg); }
+
+  /* ── Result count ── */
+  .result-count {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 4px 8px 0;
+    margin-bottom: 4px;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 12px; left: 10px; right: 10px;
+    padding: 9px 14px; border-radius: 8px; font-size: 13px;
+    color: #fff; text-align: center; opacity: 0;
+    transition: opacity .3s; pointer-events: none; z-index: 100;
+  }
+  #toast.show   { opacity: 1; }
+  #toast.success { background: var(--success); }
+  #toast.error   { background: var(--danger); }
+  #toast.warn    { background: var(--warn); color: #333; }
+
+  /* ── New patient shortcut ── */
+  .new-btn-wrap { padding: 8px 10px 0; }
+  .new-btn {
+    display: block; width: 100%; padding: 9px; text-align: center;
+    background: var(--primary); color: #fff; border: none; border-radius: 6px;
+    font-family: var(--font); font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background .15s;
+  }
+  .new-btn:hover { background: #1557b0; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header" id="header">
+  <h1>Patient Search</h1>
+  <p id="clinic-name">Loading…</p>
+</div>
+
+<!-- ── Stats Bar ── -->
+<div class="stats" id="statsBar">
+  <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-lbl">Total</div></div>
+  <div class="stat"><div class="stat-val" id="s-active">—</div><div class="stat-lbl">Active</div></div>
+  <div class="stat"><div class="stat-val" id="s-today">—</div><div class="stat-lbl">Today</div></div>
+  <div class="stat"><div class="stat-val" id="s-month">—</div><div class="stat-lbl">This Month</div></div>
+</div>
+
+<!-- ── Search box ── -->
+<div class="search-wrap">
+  <div class="search-input-wrap">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <input type="text" id="searchInput" placeholder="Search by name, phone, or Patient ID…"
+           oninput="handleSearch(this.value)" autocomplete="off">
+    <button id="clearBtn" onclick="clearSearch()">×</button>
+  </div>
+  <div class="search-hint" id="searchHint">Type at least 2 characters to search</div>
+</div>
+
+<!-- ── New Patient Shortcut ── -->
+<div class="new-btn-wrap">
+  <button class="new-btn" onclick="openNewPatient()">+ Register New Patient</button>
+</div>
+
+<!-- ── Results ── -->
+<div id="resultsWrap">
+  <div class="empty-state">
+    <div class="icon">🔍</div>
+    <p>Search for a patient by name, phone, or ID</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+let searchTimer = null;
+
+// ── On load: branding + stats ─────────────────────────────────
+google.script.run
+  .withSuccessHandler(function(cfg) {
+    if (cfg.primaryColor) {
+      document.documentElement.style.setProperty('--primary', cfg.primaryColor);
+      // Rebuild avatar colors
+      avatarColors = buildAvatarColors(cfg.primaryColor);
+    }
+    document.getElementById('clinic-name').textContent = cfg.clinicName + ' — Patient Search';
+  })
+  .getClinicSettings();
+
+google.script.run
+  .withSuccessHandler(function(stats) {
+    document.getElementById('s-total').textContent  = stats.total;
+    document.getElementById('s-active').textContent = stats.active;
+    document.getElementById('s-today').textContent  = stats.today;
+    document.getElementById('s-month').textContent  = stats.thisMonth;
+  })
+  .getPatientStats();
+
+
+// ── Avatar color palette ──────────────────────────────────────
+const AVATAR_PALETTE = [
+  '#1a73e8','#0f9d58','#e53935','#8e24aa',
+  '#f4511e','#0288d1','#2e7d32','#6d4c41'
+];
+function avatarColor(name) {
+  let hash = 0;
+  for (let c of (name || '?')) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffff;
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+function initials(name) {
+  return (name || '?').split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+}
+
+
+// ── Search ────────────────────────────────────────────────────
+function handleSearch(val) {
+  const clear = document.getElementById('clearBtn');
+  clear.style.display = val ? 'block' : 'none';
+
+  clearTimeout(searchTimer);
+
+  if (!val || val.length < 2) {
+    document.getElementById('searchHint').textContent = 'Type at least 2 characters to search';
+    showEmpty();
+    return;
+  }
+
+  showLoading();
+  document.getElementById('searchHint').textContent = 'Searching…';
+
+  searchTimer = setTimeout(function() {
+    google.script.run
+      .withSuccessHandler(renderResults)
+      .withFailureHandler(function(e) {
+        showEmpty('Search failed. Try again.');
+      })
+      .searchPatients(val);
+  }, 300);
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').style.display = 'none';
+  document.getElementById('searchHint').textContent = 'Type at least 2 characters to search';
+  showEmpty();
+}
+
+function showLoading() {
+  document.getElementById('resultsWrap').innerHTML =
+    '<div class="empty-state"><div class="loading-dots"><span></span><span></span><span></span></div></div>';
+}
+
+function showEmpty(msg) {
+  document.getElementById('resultsWrap').innerHTML =
+    '<div class="empty-state"><div class="icon">🔍</div><p>' +
+    (msg || 'Search for a patient by name, phone, or ID') + '</p></div>';
+}
+
+
+// ── Render results ────────────────────────────────────────────
+function renderResults(patients) {
+  const wrap = document.getElementById('resultsWrap');
+  document.getElementById('searchHint').textContent =
+    patients.length ? patients.length + ' result(s) found' : 'No matches found';
+
+  if (!patients.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="icon">😶</div>' +
+      '<p>No patients found.<br>Check spelling or try Patient ID.</p></div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div class="result-count">' + patients.length + ' result(s)</div>' +
+    patients.map(buildCard).join('');
+}
+
+function buildCard(p) {
+  const bg     = avatarColor(p.fullName);
+  const init   = initials(p.fullName);
+  const status = p.status || 'Active';
+  const scls   = status === 'Active' ? 'status-active'
+               : status === 'Inactive' ? 'status-inactive' : 'status-deceased';
+
+  const toggleLabel = (status === 'Active') ? 'Deactivate' : 'Activate';
+  const toggleCls   = (status === 'Active') ? 'deactivate'  : 'activate';
+
+  return `
+  <div class="patient-card" id="card-${p.patientId}">
+    <div class="card-header" onclick="toggleCard('${p.patientId}')">
+      <div class="avatar" style="background:${bg}">${init}</div>
+      <div class="card-info">
+        <div class="card-name">${escHtml(p.fullName)}</div>
+        <div class="card-pid">${escHtml(p.patientId)} &nbsp;·&nbsp; ${escHtml(p.phone)}</div>
+      </div>
+      <span class="status-chip ${scls}">${status}</span>
+      <span class="card-expand" id="exp-${p.patientId}">▾</span>
+    </div>
+    <div class="card-body" id="body-${p.patientId}">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-lbl">Gender</div>
+          <div class="detail-val ${p.gender?'':'na'}">${escHtml(p.gender) || 'Not set'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-lbl">Age</div>
+          <div class="detail-val ${p.age!==''?'':'na'}">${p.age !== '' ? p.age + ' yrs' : 'N/A'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-lbl">Blood Group</div>
+          <div class="detail-val ${p.bloodGroup?'':'na'}">${escHtml(p.bloodGroup) || 'Unknown'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-lbl">Registered</div>
+          <div class="detail-val">${escHtml(String(p.createdAt).split(' ')[0]) || '—'}</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="action-btn primary" onclick="editPatient('${p.patientId}')">✏ Edit</button>
+        <button class="action-btn" onclick="goToRow('${p.patientId}')">↗ Go to Row</button>
+        <button class="action-btn ${toggleCls}" onclick="toggleStatus('${p.patientId}','${status}')">
+          ${toggleLabel}
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+
+// ── Card expand/collapse ──────────────────────────────────────
+function toggleCard(pid) {
+  const body = document.getElementById('body-' + pid);
+  const exp  = document.getElementById('exp-' + pid);
+  body.classList.toggle('open');
+  exp.classList.toggle('open');
+}
+
+
+// ── Actions ───────────────────────────────────────────────────
+function editPatient(patientId) {
+  google.script.run.openEditPatientForm(patientId);
+}
+
+function goToRow(patientId) {
+  google.script.run
+    .withSuccessHandler(function() { showToast('Navigated to ' + patientId, 'success'); })
+    .navigateToPatientRow(patientId);
+}
+
+function openNewPatient() {
+  google.script.run.openNewPatientForm();
+}
+
+function toggleStatus(patientId, currentStatus) {
+  const action = currentStatus === 'Active' ? 'deactivate' : 'activate';
+  if (!confirm('Are you sure you want to ' + action + ' patient ' + patientId + '?')) return;
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (result.success) {
+        showToast('Status set to ' + result.newStatus, 'success');
+        // Refresh search
+        const q = document.getElementById('searchInput').value;
+        if (q.length >= 2) handleSearch(q);
+      } else {
+        showToast(result.message, 'error');
+      }
+    })
+    .togglePatientStatus(patientId);
+}
+
+
+// ── Utility ───────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'show ' + (type || 'success');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = ''; }, 3000);
+}
+</script>
+</body>
+</html>

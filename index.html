@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anjum Clinic — Patient Registration</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+  const CONFIG = {
+    clinicName  : "Anjum Skin Care Clinic",
+    location    : "Rander, Surat, Gujarat",
+    accentColor : "#1B5E35",
+    apiUrl      : "YOUR_WEB_APP_URL",   // ← Google Apps Script Web App URL here
+    logoText    : "AC",
+    whatsappNum : "91XXXXXXXXXX",        // ← Clinic WhatsApp (country code + number)
+    successMsg  : "Registration complete! Dr. Anjum's team will contact you on WhatsApp within 24 hours.",
+  };
+</script>
+
+<style>
+/* ── Reset ─────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+:root {
+  --green    : #1B5E35;
+  --teal     : #1A8A7A;
+  --lime     : #7DC242;
+  --green-m  : #2E7D52;
+  --bg       : #F0F5F2;
+  --surface  : #FFFFFF;
+  --surface2 : #F4F7F5;
+  --border   : rgba(26,138,122,0.15);
+  --border-f : rgba(26,138,122,0.55);
+  --text     : #1A2E22;
+  --muted    : #4A6A55;
+  --hint     : #8AAA95;
+  --error    : #DC2626;
+  --error-bg : #FEF2F2;
+  --warn     : #D97706;
+  --warn-bg  : #FFFBEB;
+  --grad     : linear-gradient(135deg, #1B5E35 0%, #1A8A7A 50%, #7DC242 100%);
+  --grad-ring: linear-gradient(135deg, #C2185B 0%, #FF6B35 20%, #F0C040 50%, #26A699 75%, #1B5E35 100%);
+  --shadow   : 0 4px 24px rgba(27,94,53,0.12);
+  --radius   : 12px;
+  --font-head: 'Playfair Display', serif;
+  --font     : 'DM Sans', sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* ── HERO ────────────────────────────────────────────────────── */
+.hero {
+  background: var(--green);
+  padding: 32px 20px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 30%, rgba(26,138,122,0.25) 0%, transparent 60%);
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0;
+  height: 36px;
+  background: var(--bg);
+  clip-path: ellipse(56% 100% at 50% 100%);
+}
+
+.logo-ring {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  padding: 3px;
+  background: var(--grad-ring);
+  margin: 0 auto 16px;
+  position: relative; z-index: 1;
+  animation: spinIn 0.8s ease both;
+}
+@keyframes spinIn {
+  from { opacity: 0; transform: scale(0.7) rotate(-20deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+.logo-inner {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-size: 22px; font-weight: 700;
+  color: #A8D86B;
+  letter-spacing: -0.5px;
+}
+
+.clinic-name {
+  font-family: var(--font-head);
+  font-size: 22px; font-weight: 700;
+  color: #fff;
+  display: block; letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s 0.2s both;
+}
+.clinic-sub {
+  font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(168,216,107,0.9);
+  display: block; margin-bottom: 10px;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s 0.3s both;
+}
+.clinic-pills {
+  display: flex; justify-content: center;
+  gap: 5px; flex-wrap: wrap;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s 0.4s both;
+}
+.pill {
+  font-size: 9px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  border: 0.5px solid rgba(255,255,255,0.18);
+  padding: 3px 10px; border-radius: 20px;
+}
+.loc {
+  font-size: 10px; color: rgba(255,255,255,0.45);
+  margin-top: 10px; position: relative; z-index: 1;
+  animation: fadeUp 0.6s 0.5s both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── PROGRESS BAR ──────────────────────────────────────────── */
+.prog-wrap {
+  max-width: 560px; margin: 20px auto 0; padding: 0 20px;
+}
+.prog-steps {
+  display: flex; align-items: center; gap: 0;
+  margin-bottom: 10px;
+}
+.prog-step {
+  flex: 1; text-align: center; position: relative;
+}
+.prog-step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 4px;
+  font-size: 11px; font-weight: 600; color: var(--hint);
+  transition: all 0.3s ease;
+  position: relative; z-index: 1;
+}
+.prog-step.active .prog-step-dot {
+  background: var(--grad); border-color: transparent;
+  color: white; transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(26,138,122,0.35);
+}
+.prog-step.done .prog-step-dot {
+  background: var(--grad); border-color: transparent; color: white;
+}
+.prog-step-lbl {
+  font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--hint); font-weight: 500; transition: color 0.3s;
+}
+.prog-step.active .prog-step-lbl { color: var(--teal); }
+.prog-step.done  .prog-step-lbl  { color: var(--green-m); }
+.prog-connector {
+  flex: 0.5; height: 2px;
+  background: var(--border);
+  transition: background 0.4s;
+  margin-bottom: 18px;
+}
+.prog-connector.done { background: var(--grad); }
+
+/* ── CARD ──────────────────────────────────────────────────── */
+.card-wrap { max-width: 560px; margin: 0 auto; padding: 0 16px 80px; }
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(26,138,122,0.08);
+  overflow: hidden;
+  animation: cardIn 0.5s 0.1s both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(27,94,53,0.04) 0%, rgba(26,138,122,0.03) 100%);
+}
+.eyebrow {
+  font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+  font-weight: 600; color: var(--teal); margin-bottom: 4px;
+}
+.card-title {
+  font-family: var(--font-head);
+  font-size: 22px; font-weight: 700;
+  color: var(--green); margin-bottom: 2px;
+}
+.card-title em { color: var(--teal); font-style: italic; }
+.card-sub { font-size: 12px; color: var(--hint); font-weight: 300; }
+
+/* ── PAGES ─────────────────────────────────────────────────── */
+.page { display: none; padding: 24px; }
+.page.active { display: block; }
+
+/* ── FIELDS ────────────────────────────────────────────────── */
+.field { margin-bottom: 16px; }
+.field label {
+  display: block; font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; font-weight: 600; color: var(--muted);
+  margin-bottom: 6px;
+}
+.field label .req { color: var(--error); margin-left: 2px; }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 11px 14px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: var(--font); font-size: 13px; font-weight: 400;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  appearance: none; -webkit-appearance: none;
+}
+.field input::placeholder, .field textarea::placeholder { color: var(--hint); font-size: 12px; }
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--teal); background: #fff;
+  box-shadow: 0 0 0 3px rgba(26,138,122,0.12);
+}
+.field input.invalid, .field select.invalid, .field textarea.invalid {
+  border-color: var(--error); background: var(--error-bg);
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.08);
+}
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231A8A7A'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center; background-size: 8px;
+  padding-right: 34px; cursor: pointer;
+}
+.field textarea { height: 90px; resize: vertical; line-height: 1.7; }
+
+.field-error {
+  display: none; font-size: 11px; color: var(--error);
+  margin-top: 5px; font-weight: 400;
+}
+.field-error.show { display: block; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* ── SECTION DIVIDER ───────────────────────────────────────── */
+.sec-div {
+  display: flex; align-items: center; gap: 10px;
+  margin: 20px 0 16px; color: var(--hint);
+}
+.sec-div::before, .sec-div::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.sec-div span {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  font-weight: 600; white-space: nowrap;
+}
+
+/* ── CHIPS ─────────────────────────────────────────────────── */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 5px; }
+.chip {
+  padding: 7px 13px; border: 1.5px solid var(--border);
+  border-radius: 20px; font-size: 11px; color: var(--muted);
+  cursor: pointer; transition: all 0.15s; font-weight: 400;
+  background: var(--surface2); user-select: none;
+  font-family: var(--font);
+}
+.chip:hover { border-color: var(--teal); color: var(--teal); }
+.chip.sel {
+  background: rgba(26,138,122,0.1); border-color: var(--teal);
+  color: var(--teal); font-weight: 500;
+}
+
+/* Single-select chip */
+.s-chip {
+  padding: 8px 14px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 11px; color: var(--muted);
+  cursor: pointer; transition: all 0.15s; font-weight: 400;
+  background: var(--surface2); user-select: none;
+  font-family: var(--font);
+}
+.s-chip:hover { border-color: var(--teal); color: var(--teal); }
+.s-chip.sel {
+  background: var(--grad); border-color: transparent;
+  color: white; font-weight: 500;
+}
+
+/* Severity */
+.sev-row { display: flex; gap: 8px; margin-top: 5px; }
+.sev {
+  flex: 1; padding: 9px 4px; text-align: center;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 12px; color: var(--muted); cursor: pointer;
+  transition: all 0.15s; background: var(--surface2);
+  user-select: none; font-family: var(--font);
+}
+.sev.mild.sel  { background: #E8F5E9; border-color: #66BB6A; color: #2E7D32; }
+.sev.mod.sel   { background: #FFF9C4; border-color: #F9A825; color: #F57F17; }
+.sev.sev2.sel  { background: #FFEBEE; border-color: #EF5350; color: #C62828; }
+
+/* ── CHECK ROWS (consent) ──────────────────────────────────── */
+.chk-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: 8px; margin-bottom: 8px; cursor: pointer;
+  transition: all 0.15s; background: var(--surface2);
+}
+.chk-row:hover { border-color: var(--teal); }
+.chk-row.checked { border-color: var(--teal); background: rgba(26,138,122,0.05); }
+.chk-box {
+  width: 18px; height: 18px; border-radius: 4px;
+  border: 1.5px solid var(--hint); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; margin-top: 2px;
+  font-size: 11px; background: transparent;
+}
+.chk-row.checked .chk-box {
+  background: var(--teal); border-color: var(--teal); color: white;
+}
+.chk-row.checked .chk-box::after { content: '✓'; }
+.chk-txt { font-size: 12px; color: var(--muted); line-height: 1.6; font-weight: 300; }
+
+.chk-row.invalid-row { border-color: var(--error); background: var(--error-bg); }
+
+/* ── CONSENT BOX ───────────────────────────────────────────── */
+.consent-box {
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; font-size: 12px; color: var(--muted);
+  line-height: 1.9; max-height: 200px; overflow-y: auto;
+  background: var(--surface2); margin-bottom: 14px; font-weight: 300;
+  scrollbar-width: thin; scrollbar-color: var(--teal) transparent;
+}
+.consent-box h4 {
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 10px; font-weight: 600;
+}
+.consent-box p { margin-bottom: 8px; }
+.consent-box ol { padding-left: 16px; }
+.consent-box li { margin-bottom: 6px; }
+.consent-box strong { color: var(--text); font-weight: 500; }
+
+/* ── MEDICAL NOTICE ────────────────────────────────────────── */
+.med-notice {
+  background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.2);
+  border-radius: 8px; padding: 12px 14px;
+  font-size: 11px; color: #7F1D1D; margin-bottom: 14px; line-height: 1.8;
+}
+
+/* ── SUMMARY BOX ───────────────────────────────────────────── */
+.summary {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 18px; font-size: 12px;
+  line-height: 2.2; margin-bottom: 18px; color: var(--muted);
+}
+.summary strong {
+  color: var(--green); font-weight: 600; min-width: 140px; display: inline-block;
+}
+
+/* ── NOTICE ────────────────────────────────────────────────── */
+.notice {
+  background: rgba(26,138,122,0.06); border: 1px solid rgba(26,138,122,0.2);
+  border-radius: 8px; padding: 12px 14px;
+  font-size: 11px; color: var(--muted); margin: 14px 0; line-height: 1.8;
+}
+.notice .hl { color: var(--teal); font-weight: 600; }
+
+/* ── FEEDBACK BANNER ───────────────────────────────────────── */
+.feedback {
+  display: none; gap: 10px; align-items: flex-start;
+  padding: 12px 16px; border-radius: 8px; margin: 0 24px 4px;
+  font-size: 12px; line-height: 1.6;
+}
+.feedback.show { display: flex; }
+.feedback.error { background: var(--error-bg); border: 1px solid #FCA5A5; color: #991B1B; }
+.feedback.warn  { background: var(--warn-bg);  border: 1px solid #FCD34D; color: #92400E; }
+.feedback-title { font-weight: 600; font-size: 13px; }
+
+/* ── BUTTONS ───────────────────────────────────────────────── */
+.btn-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 24px; padding-top: 20px;
+  border-top: 1px solid var(--border); gap: 10px;
+}
+.btn-primary {
+  padding: 12px 28px; background: var(--grad); color: white;
+  border: none; border-radius: 8px;
+  font-family: var(--font); font-size: 11px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; font-weight: 600;
+  box-shadow: 0 4px 14px rgba(27,94,53,0.28);
+  transition: opacity 0.2s, transform 0.15s;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-secondary {
+  padding: 12px 20px; background: transparent; color: var(--muted);
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: var(--font); font-size: 11px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; font-weight: 500;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: var(--teal); color: var(--teal); }
+.spinner {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%;
+  animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SUCCESS STATE ─────────────────────────────────────────── */
+.success-wrap { text-align: center; padding: 36px 24px 24px; }
+.success-ring {
+  width: 76px; height: 76px; border-radius: 50%; padding: 3px;
+  background: var(--grad); margin: 0 auto 20px;
+}
+.success-inner {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: white; display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.success-wrap h2 {
+  font-family: var(--font-head); font-size: 26px; font-weight: 700;
+  color: var(--green); margin-bottom: 10px;
+}
+.success-wrap h2 em { color: var(--teal); font-style: italic; }
+.success-wrap p { font-size: 13px; color: var(--muted); line-height: 2; font-weight: 300; }
+.pid-badge {
+  display: inline-block; background: rgba(26,138,122,0.1);
+  border: 1px solid rgba(26,138,122,0.3); border-radius: 20px;
+  padding: 6px 18px; font-size: 14px; font-weight: 600;
+  color: var(--teal); margin: 14px 0; letter-spacing: 1px;
+  font-family: monospace;
+}
+.wa-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 28px; background: #25D366; color: white;
+  border: none; border-radius: 8px;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; text-decoration: none; margin-top: 10px;
+  box-shadow: 0 4px 14px rgba(37,211,102,0.35);
+  transition: opacity 0.2s;
+}
+.wa-btn:hover { opacity: 0.9; }
+.btn-reset {
+  display: block; margin: 14px auto 0; padding: 10px 24px;
+  background: transparent; color: var(--hint);
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-family: var(--font); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 1.5px; cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-reset:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── FOOTER ────────────────────────────────────────────────── */
+.footer {
+  text-align: center; font-size: 9px; color: var(--hint);
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 20px; border-top: 1px solid var(--border);
+  max-width: 560px; margin: 0 auto;
+}
+.footer .hl { color: var(--teal); }
+
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .card-header, .page { padding: 18px 14px; }
+  .two-col { grid-template-columns: 1fr; }
+  .three-col { grid-template-columns: 1fr 1fr; }
+  .sev-row { flex-direction: column; }
+  .btn-row { flex-wrap: wrap; }
+  .btn-primary, .btn-secondary { flex: 1; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="logo-ring">
+    <div class="logo-inner" id="js-logo">AC</div>
+  </div>
+  <span class="clinic-name" id="js-name">Anjum Skin Care Clinic</span>
+  <span class="clinic-sub" id="js-sub">Patient Registration</span>
+  <div class="clinic-pills">
+    <span class="pill">Skin</span>
+    <span class="pill">Hair</span>
+    <span class="pill">Laser</span>
+    <span class="pill">Weight Loss</span>
+    <span class="pill">Homeopathy</span>
+    <span class="pill">14+ Yrs ✨</span>
+  </div>
+  <div class="loc" id="js-loc">📍 Rander, Surat, Gujarat</div>
+</div>
+
+<!-- PROGRESS -->
+<div class="prog-wrap">
+  <div class="prog-steps" id="prog-steps">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- CARD -->
+<div class="card-wrap">
+<div class="card">
+
+  <!-- CARD HEADER -->
+  <div class="card-header" id="card-header">
+    <div class="eyebrow" id="js-eyebrow">Step 01 of 04</div>
+    <div class="card-title" id="js-card-title">Patient <em>Details</em></div>
+    <div class="card-sub" id="js-card-sub">All information is confidential &amp; secure</div>
+  </div>
+
+  <!-- PAGE 1: Patient Details -->
+  <div class="page active" id="pg1">
+    <div class="two-col">
+      <div class="field">
+        <label>Full Name <span class="req">*</span></label>
+        <input id="v-name" type="text" placeholder="Aapka pura naam">
+        <span class="field-error" id="err-name">Please enter your full name.</span>
+      </div>
+      <div class="field">
+        <label>Age <span class="req">*</span></label>
+        <input id="v-age" type="number" min="1" max="120" placeholder="e.g. 32">
+        <span class="field-error" id="err-age">Please enter a valid age.</span>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label>Gender <span class="req">*</span></label>
+        <select id="v-gender">
+          <option value="">Select...</option>
+          <option>Female / महिला / સ્ત્રી</option>
+          <option>Male / पुरुष / પુરુષ</option>
+          <option>Other</option>
+        </select>
+        <span class="field-error" id="err-gender">Please select your gender.</span>
+      </div>
+      <div class="field">
+        <label>Date of Birth</label>
+        <input id="v-dob" type="date">
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label>WhatsApp Number <span class="req">*</span></label>
+        <input id="v-phone" type="tel" placeholder="+91 00000 00000">
+        <span class="field-error" id="err-phone">Enter a valid phone number (min 10 digits).</span>
+      </div>
+      <div class="field">
+        <label>Email (optional)</label>
+        <input id="v-email" type="email" placeholder="your@email.com">
+        <span class="field-error" id="err-email">Enter a valid email address.</span>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label>City</label>
+        <input id="v-city" type="text" placeholder="e.g. Surat">
+      </div>
+      <div class="field">
+        <label>Area / Locality</label>
+        <input id="v-area" type="text" placeholder="e.g. Rander, Adajan...">
+      </div>
+    </div>
+
+    <div class="sec-div"><span>How did you find us?</span></div>
+    <div class="chips" id="chips-ref">
+      <div class="chip" onclick="toggleChip(this)">📸 Instagram</div>
+      <div class="chip" onclick="toggleChip(this)">💬 WhatsApp</div>
+      <div class="chip" onclick="toggleChip(this)">👨‍👩‍👧 Friend / Family</div>
+      <div class="chip" onclick="toggleChip(this)">🔍 Google Search</div>
+      <div class="chip" onclick="toggleChip(this)">🚶 Walk-in</div>
+      <div class="chip" onclick="toggleChip(this)">💚 Old Patient</div>
+    </div>
+
+    <div class="btn-row">
+      <span></span>
+      <button class="btn-primary" onclick="goNext(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2: Health Information -->
+  <div class="page" id="pg2">
+    <div class="field">
+      <label>Primary Concern <span class="req">*</span></label>
+      <div class="chips" id="chips-concern">
+        <div class="s-chip" onclick="selSingle('concern',this,'Acne / Pimples')">🔴 Acne / Pimples</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Eczema')">🟡 Eczema</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Psoriasis')">🟠 Psoriasis</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Melasma / Dark Patches')">🟤 Melasma</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Hair Fall / Thinning')">💆 Hair Fall</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Laser Hair Removal')">✨ Laser Hair Removal</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Weight Loss / Management')">⚖️ Weight Loss</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Pigmentation / Tan')">🌞 Pigmentation</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Anti-Ageing / Wrinkles')">💎 Anti-Ageing</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Homeopathy Treatment')">🌿 Homeopathy</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Facial / Cleanup')">🌸 Facial / Cleanup</div>
+        <div class="s-chip" onclick="selSingle('concern',this,'Other')">Other</div>
+      </div>
+      <span class="field-error" id="err-concern">Please select your primary concern.</span>
+    </div>
+
+    <div class="field">
+      <label>Since how long?</label>
+      <div class="chips" id="chips-duration">
+        <div class="s-chip" onclick="selSingle('duration',this,'Less than 1 month')">Less than 1 month</div>
+        <div class="s-chip" onclick="selSingle('duration',this,'1–6 months')">1–6 months</div>
+        <div class="s-chip" onclick="selSingle('duration',this,'6 months – 1 year')">6 months – 1 year</div>
+        <div class="s-chip" onclick="selSingle('duration',this,'More than 1 year')">More than 1 year</div>
+        <div class="s-chip" onclick="selSingle('duration',this,'Chronic / Many years')">Chronic / Many years</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Severity Level</label>
+      <div class="sev-row">
+        <div class="sev mild" onclick="selSev(this,'Mild')">😊 Mild</div>
+        <div class="sev mod"  onclick="selSev(this,'Moderate')">😐 Moderate</div>
+        <div class="sev sev2" onclick="selSev(this,'Severe')">😟 Severe</div>
+      </div>
+    </div>
+
+    <div class="sec-div"><span>Medical History</span></div>
+
+    <div class="field">
+      <label>Previous Treatments Taken</label>
+      <div class="chips" id="chips-prev">
+        <div class="chip" onclick="toggleChip(this)">Allopathy medicines</div>
+        <div class="chip" onclick="toggleChip(this)">Homeopathy</div>
+        <div class="chip" onclick="toggleChip(this)">Ayurveda / Herbal</div>
+        <div class="chip" onclick="toggleChip(this)">Laser treatment</div>
+        <div class="chip" onclick="toggleChip(this)">Chemical peel</div>
+        <div class="chip" onclick="toggleChip(this)">Home remedies only</div>
+        <div class="chip" onclick="toggleChip(this)">No treatment taken</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Known Medical Conditions</label>
+      <div class="chips" id="chips-conditions">
+        <div class="chip" onclick="toggleChip(this)">Diabetes</div>
+        <div class="chip" onclick="toggleChip(this)">Thyroid</div>
+        <div class="chip" onclick="toggleChip(this)">PCOS / PCOD</div>
+        <div class="chip" onclick="toggleChip(this)">Hypertension</div>
+        <div class="chip" onclick="toggleChip(this)">Allergies</div>
+        <div class="chip" onclick="toggleChip(this)">Pregnancy</div>
+        <div class="chip" onclick="toggleChip(this)">Breastfeeding</div>
+        <div class="chip" onclick="toggleChip(this)">None</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label>Skin Type</label>
+        <select id="v-skin">
+          <option value="">Select...</option>
+          <option>Oily</option>
+          <option>Dry</option>
+          <option>Combination</option>
+          <option>Sensitive</option>
+          <option>Normal</option>
+          <option>Not sure</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Known Allergies</label>
+        <input id="v-allergies" type="text" placeholder="e.g. nuts, penicillin...">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Additional Notes (optional)</label>
+      <textarea id="v-note" placeholder="Koi aur detail jo doctor ko batana chahte ho..."></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goPage(1)">← Back</button>
+      <button class="btn-primary" onclick="goNext(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3: Consent -->
+  <div class="page" id="pg3">
+    <div class="med-notice">
+      ⚠️ <strong>Important:</strong> This form is for patient information only. Final diagnosis and treatment will be done after in-person/online consultation with Dr. Anjum.
+    </div>
+
+    <div class="consent-box">
+      <h4>Patient Consent &amp; Privacy Agreement — Anjum Clinic</h4>
+      <p>Yeh agreement <strong>Anjum Clinic (Dr. Anjum)</strong> aur patient ke beech hai. Form submit karne par aap in terms se agree karte/karti hain.</p>
+      <ol>
+        <li><strong>Treatment Consent:</strong> Main samajhta/samajhti hoon ki yeh registration form hai. Final treatment plan sirf Dr. Anjum ke saath consultation ke baad decide hoga.</li>
+        <li><strong>Medical Information:</strong> Main apni sahi aur complete medical history provide karne ke liye agree karta/karti hoon. Galat information se treatment affected ho sakta hai.</li>
+        <li><strong>Photography / Before-After:</strong> Treatment ke before-after photos treatment record ke liye liye ja sakte hain. Social media use ke liye alag consent liya jaayega.</li>
+        <li><strong>Side Effects:</strong> Kisi bhi treatment ke possible side effects ho sakte hain jo doctor explain karenge. Main follow-up appointments attend karne ke liye agree karta/karti hoon.</li>
+        <li><strong>Payment:</strong> Fees consultation ke time inform ki jaayegi. Advance booking cancel karne pe minimum 2 ghante pehle notice dena hoga.</li>
+        <li><strong>Data Privacy:</strong> Meri personal aur medical information sirf treatment ke liye use hogi. Kisi third party ke saath share nahi hogi.</li>
+        <li><strong>WhatsApp Communication:</strong> Clinic treatment reminders aur follow-up messages WhatsApp par bhej sakti hai. Main kisi bhi time opt-out kar sakta/sakti hoon.</li>
+      </ol>
+    </div>
+
+    <div class="chk-row" id="c1" onclick="toggleChk('c1')">
+      <div class="chk-box"></div>
+      <span class="chk-txt">Maine patient consent agreement padha aur main sehmat hoon.</span>
+    </div>
+    <div class="chk-row" id="c2" onclick="toggleChk('c2')">
+      <div class="chk-box"></div>
+      <span class="chk-txt">Main confirm karta/karti hoon ki meri di hui saari jaankari sahi aur poori hai.</span>
+    </div>
+    <div class="chk-row" id="c3" onclick="toggleChk('c3')">
+      <div class="chk-box"></div>
+      <span class="chk-txt">Main samajhta/samajhti hoon ki registration se kisi specific treatment ki guarantee nahi milti.</span>
+    </div>
+    <div class="chk-row" id="c4" onclick="toggleChk('c4')">
+      <div class="chk-box"></div>
+      <span class="chk-txt">Main Dr. Anjum ki team ko appointment aur follow-up ke liye WhatsApp par contact karne ki anumati deta/deti hoon.</span>
+    </div>
+    <span class="field-error" id="err-consent" style="margin-top:4px">Please accept all consent checkboxes to continue.</span>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goPage(2)">← Back</button>
+      <button class="btn-primary" onclick="goNext(4)">I Agree — Continue →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 4: Review & Submit -->
+  <div class="page" id="pg4">
+    <div class="summary" id="summary-box"></div>
+
+    <div class="field">
+      <label>Digital Signature — Type Your Full Name <span class="req">*</span></label>
+      <input id="v-sig" type="text" placeholder="Apna pura naam type karein">
+      <span class="field-error" id="err-sig">Please type your full name as digital signature.</span>
+      <div style="font-size:10px;color:var(--hint);margin-top:5px;">Typing your name = digital consent for treatment and data use.</div>
+    </div>
+    <div class="field">
+      <label>Date of Registration</label>
+      <input id="v-date" type="text" readonly style="color:var(--hint);cursor:not-allowed;background:var(--surface2);">
+    </div>
+
+    <div class="notice">
+      <span class="hl">✓ Next step:</span> Dr. Anjum's team will contact you on WhatsApp within <span class="hl">24 hours</span> to confirm your appointment and share further guidance.
+    </div>
+
+    <!-- Feedback banner -->
+    <div class="feedback" id="feedback">
+      <span id="fb-icon">⚠️</span>
+      <div>
+        <div class="feedback-title" id="fb-title">Something went wrong</div>
+        <div id="fb-msg" style="font-size:11px;margin-top:2px;"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goPage(3)">← Back</button>
+      <button class="btn-primary" id="btn-submit" onclick="submitForm()">
+        Submit Registration →
+      </button>
+    </div>
+  </div>
+
+  <!-- PAGE 5: SUCCESS -->
+  <div class="page" id="pg5">
+    <div class="success-wrap">
+      <div class="success-ring">
+        <div class="success-inner">🌿</div>
+      </div>
+      <h2>Registration <em>Complete!</em></h2>
+      <p id="js-success-txt">Your registration is complete!<br>Dr. Anjum's team will contact you on WhatsApp within 24 hours.</p>
+      <div class="pid-badge" id="success-pid" style="display:none"></div>
+
+      <div style="height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent);margin:18px 0;opacity:0.3;"></div>
+      <div class="summary" id="final-box" style="text-align:left;"></div>
+
+      <a class="wa-btn" id="wa-link" href="#" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.114.554 4.098 1.523 5.817L.057 23.882l6.219-1.448A11.934 11.934 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.788 9.788 0 01-5.134-1.449l-.368-.22-3.813.888.924-3.694-.24-.379A9.778 9.778 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+        Chat on WhatsApp
+      </a>
+
+      <button class="btn-reset" onclick="resetAll()">Register Another Patient</button>
+    </div>
+  </div>
+
+</div><!-- /card -->
+</div><!-- /card-wrap -->
+
+<div class="footer">
+  <span class="hl">Anjum Clinic</span> · Dr. Anjum · Rander, Surat · All data encrypted · Confidential
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const state = {
+  concern  : '',
+  duration : '',
+  severity : '',
+  curPage  : 1,
+};
+
+const STEPS = ['Your Details', 'Health Info', 'Consent', 'Confirm'];
+
+// ═══════════════════════════════════════════════════════════
+//  APPLY CONFIG ON LOAD
+// ═══════════════════════════════════════════════════════════
+(function applyConfig() {
+  document.getElementById('js-logo').textContent = CONFIG.logoText || 'AC';
+  document.getElementById('js-name').textContent = CONFIG.clinicName;
+  document.getElementById('js-sub').textContent  = 'Patient Registration';
+  document.getElementById('js-loc').textContent  = '📍 ' + CONFIG.location;
+  document.getElementById('js-success-txt').textContent = CONFIG.successMsg;
+  document.title = CONFIG.clinicName + ' — Patient Registration';
+
+  // Set max date for date input (prevent future dates)
+  const dobInput = document.getElementById('v-dob');
+  if (dobInput) dobInput.max = new Date().toISOString().split('T')[0];
+
+  // Set registration date
+  document.getElementById('v-date').value = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  });
+
+  renderProgress();
+})();
+
+// ═══════════════════════════════════════════════════════════
+//  PROGRESS BAR
+// ═══════════════════════════════════════════════════════════
+
+function renderProgress() {
+  const wrap = document.getElementById('prog-steps');
+  if (!wrap) return;
+  const cur = state.curPage;
+  let html = '';
+  for (let i = 0; i < STEPS.length; i++) {
+    const stepNum = i + 1;
+    let cls = '';
+    if (stepNum < cur)  cls = 'done';
+    if (stepNum === cur) cls = 'active';
+    html += `<div class="prog-step ${cls}">
+      <div class="prog-step-dot">${stepNum < cur ? '✓' : stepNum}</div>
+      <div class="prog-step-lbl">${STEPS[i]}</div>
+    </div>`;
+    if (i < STEPS.length - 1) {
+      html += `<div class="prog-connector ${stepNum < cur ? 'done' : ''}"></div>`;
+    }
+  }
+  wrap.innerHTML = html;
+}
+
+function updateCardHeader(pageNum) {
+  const headers = [
+    { eyebrow: 'Step 01 of 04', title: 'Patient', accent: 'Details',     sub: 'All information is confidential & secure' },
+    { eyebrow: 'Step 02 of 04', title: 'Health',  accent: 'Information', sub: 'This helps Dr. Anjum prepare the best treatment for you' },
+    { eyebrow: 'Step 03 of 04', title: 'Patient', accent: 'Consent',     sub: 'Please read carefully before proceeding' },
+    { eyebrow: 'Step 04 of 04', title: 'Review &',accent: 'Confirm',     sub: 'Verify your details before submitting' },
+  ];
+  if (pageNum < 1 || pageNum > 4) return;
+  const h = headers[pageNum - 1];
+  document.getElementById('js-eyebrow').textContent   = h.eyebrow;
+  document.getElementById('js-card-title').innerHTML  = `${h.title} <em>${h.accent}</em>`;
+  document.getElementById('js-card-sub').textContent  = h.sub;
+  document.getElementById('card-header').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function goPage(n) {
+  state.curPage = n;
+  for (let i = 1; i <= 5; i++) {
+    const p = document.getElementById('pg' + i);
+    if (p) p.classList.remove('active');
+  }
+  document.getElementById('pg' + n).classList.add('active');
+  renderProgress();
+  if (n <= 4) updateCardHeader(n);
+  if (n === 5) document.getElementById('card-header').style.display = 'none';
+  if (n === 4) buildSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// goNext validates before going to next page
+function goNext(n) {
+  if (n === 2 && !validatePage1()) return;
+  if (n === 3 && !validatePage2()) return;
+  if (n === 4 && !validatePage3()) return;
+  goPage(n);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VALIDATION
+// ═══════════════════════════════════════════════════════════
+function setInvalid(inputId, errorId) {
+  const el = document.getElementById(inputId);
+  if (el) el.classList.add('invalid');
+  const err = document.getElementById(errorId);
+  if (err) err.classList.add('show');
+}
+
+function clearInvalid(inputId, errorId) {
+  const el = document.getElementById(inputId);
+  if (el) el.classList.remove('invalid');
+  if (errorId) {
+    const err = document.getElementById(errorId);
+    if (err) err.classList.remove('show');
+  }
+}
+
+// Auto-clear on input
+['v-name','v-age','v-gender','v-phone','v-email','v-sig'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => clearInvalid(id));
+  if (el) el.addEventListener('change', () => clearInvalid(id));
+});
+
+function validatePage1() {
+  let valid = true;
+
+  // Name
+  const name = document.getElementById('v-name').value.trim();
+  if (!name || name.length < 2) { setInvalid('v-name', 'err-name'); valid = false; }
+  else clearInvalid('v-name', 'err-name');
+
+  // Age
+  const age = parseInt(document.getElementById('v-age').value);
+  if (!age || age < 1 || age > 120) { setInvalid('v-age', 'err-age'); valid = false; }
+  else clearInvalid('v-age', 'err-age');
+
+  // Gender
+  const gender = document.getElementById('v-gender').value;
+  if (!gender) { setInvalid('v-gender', 'err-gender'); valid = false; }
+  else clearInvalid('v-gender', 'err-gender');
+
+  // Phone
+  const phone = document.getElementById('v-phone').value.replace(/\D/g, '');
+  if (phone.length < 10) { setInvalid('v-phone', 'err-phone'); valid = false; }
+  else clearInvalid('v-phone', 'err-phone');
+
+  // Email (optional but validate if filled)
+  const email = document.getElementById('v-email').value.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setInvalid('v-email', 'err-email'); valid = false;
+  } else clearInvalid('v-email', 'err-email');
+
+  if (!valid) window.scrollTo({ top: 0, behavior: 'smooth' });
+  return valid;
+}
+
+function validatePage2() {
+  let valid = true;
+  if (!state.concern) {
+    document.getElementById('err-concern').classList.add('show');
+    valid = false;
+  } else {
+    document.getElementById('err-concern').classList.remove('show');
+  }
+  if (!valid) window.scrollTo({ top: 0, behavior: 'smooth' });
+  return valid;
+}
+
+function validatePage3() {
+  const allChecked = ['c1','c2','c3','c4'].every(id =>
+    document.getElementById(id).classList.contains('checked')
+  );
+  if (!allChecked) {
+    ['c1','c2','c3','c4'].forEach(id => {
+      const row = document.getElementById(id);
+      if (!row.classList.contains('checked')) row.classList.add('invalid-row');
+    });
+    document.getElementById('err-consent').classList.add('show');
+    return false;
+  }
+  document.getElementById('err-consent').classList.remove('show');
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CHIP INTERACTIONS
+// ═══════════════════════════════════════════════════════════
+function toggleChip(el) { el.classList.toggle('sel'); }
+
+function selSingle(key, el, val) {
+  el.parentElement.querySelectorAll('.s-chip').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  state[key] = val;
+  // Clear error if concern selected
+  if (key === 'concern') document.getElementById('err-concern').classList.remove('show');
+}
+
+function selSev(el, val) {
+  document.querySelectorAll('.sev').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  state.severity = val;
+}
+
+function toggleChk(id) {
+  const row = document.getElementById(id);
+  row.classList.toggle('checked');
+  row.classList.remove('invalid-row');
+  document.getElementById('err-consent').classList.remove('show');
+}
+
+function getChips(containerId) {
+  return Array.from(document.querySelectorAll('#' + containerId + ' .chip.sel, #' + containerId + ' .s-chip.sel'))
+    .map(c => c.textContent.trim()).join(', ') || '—';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SUMMARY BUILDER
+// ═══════════════════════════════════════════════════════════
+function buildSummary() {
+  const f = id => document.getElementById(id)?.value?.trim() || '—';
+
+  const rows = [
+    ['Name',              f('v-name')],
+    ['Age / Gender',      f('v-age') + ' yrs / ' + f('v-gender')],
+    ['WhatsApp',          f('v-phone')],
+    ['City',              (f('v-city') !== '—' ? f('v-city') : '') + (f('v-area') !== '—' ? ', ' + f('v-area') : '') || '—'],
+    ['Concern',           state.concern || '—'],
+    ['Duration',          state.duration || '—'],
+    ['Severity',          state.severity || '—'],
+    ['Prev Treatment',    getChips('chips-prev')],
+    ['Medical Conditions',getChips('chips-conditions')],
+    ['Skin Type',         f('v-skin')],
+    ['Referred Via',      getChips('chips-ref')],
+  ];
+
+  document.getElementById('summary-box').innerHTML =
+    rows.map(([k,v]) => `<strong>${k}</strong>${v}`).join('<br>');
+
+  document.getElementById('v-date').value = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SUBMIT
+// ═══════════════════════════════════════════════════════════
+async function submitForm() {
+  // Validate signature
+  const sig = document.getElementById('v-sig').value.trim();
+  if (!sig || sig.length < 2) {
+    setInvalid('v-sig', 'err-sig');
+    document.getElementById('v-sig').focus();
+    return;
+  }
+  clearInvalid('v-sig', 'err-sig');
+
+  const f = id => document.getElementById(id)?.value?.trim() || '';
+
+  const payload = {
+    timestamp  : new Date().toLocaleString('en-IN'),
+    name       : f('v-name'),
+    phone      : f('v-phone'),
+    dob        : f('v-dob'),
+    gender     : f('v-gender'),
+    age        : f('v-age'),
+    email      : f('v-email'),
+    city       : f('v-city') + (f('v-area') ? ', ' + f('v-area') : ''),
+    referral   : getChips('chips-ref'),
+    concern    : state.concern || '—',
+    duration   : state.duration || '—',
+    severity   : state.severity || '—',
+    prevTreat  : getChips('chips-prev'),
+    conditions : getChips('chips-conditions'),
+    skinType   : f('v-skin'),
+    allergies  : f('v-allergies'),
+    notes      : f('v-note'),
+    signature  : sig,
+    signedOn   : f('v-date'),
+    // Map to doPost() field names
+    problem    : state.concern + (state.duration ? ' — ' + state.duration : '') + (state.severity ? ' (' + state.severity + ')' : ''),
+  };
+
+  // Button loading state
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Submitting…';
+  hideFeedback();
+
+  // DEMO MODE — no API URL set
+  if (CONFIG.apiUrl === 'YOUR_WEB_APP_URL') {
+    await new Promise(r => setTimeout(r, 1000));
+    showSuccess('ANJ-' + new Date().getFullYear() + '-DEMO', payload);
+    return;
+  }
+
+  try {
+    const response = await fetch(CONFIG.apiUrl, {
+      method  : 'POST',
+      redirect: 'follow',
+      headers : { 'Content-Type': 'text/plain;charset=utf-8' },
+      body    : JSON.stringify(payload),
+    });
+
+    let data = null;
+    try {
+      const text = await response.text();
+      data = JSON.parse(text);
+    } catch (_) {
+      // CORS read failure — data was saved server-side
+      console.warn('[KYC] Response unreadable — assuming success (data saved server-side)');
+      showSuccess(null, payload);
+      return;
+    }
+
+    if (data.success) {
+      showSuccess(data.patientId, payload);
+    } else if (data.duplicate) {
+      showFeedback('warn', 'Phone Already Registered',
+        data.error + ' — Please contact reception.');
+      resetBtn(btn);
+    } else {
+      showFeedback('error', 'Registration Failed', data.error || 'Please try again.');
+      resetBtn(btn);
+    }
+
+  } catch (err) {
+    console.error('[KYC submit]', err.message);
+    if (err.message.toLowerCase().includes('failed to fetch')) {
+      showFeedback('error', 'Cannot Reach Server',
+        'Check: (1) correct Web App URL in CONFIG.apiUrl, (2) deployed as "Anyone" access, (3) re-deployed after last code change.');
+    } else {
+      showFeedback('error', 'Submission Failed', err.message);
+    }
+    resetBtn(btn);
+  }
+}
+
+function showSuccess(patientId, payload) {
+  // Build final summary
+  if (payload) {
+    document.getElementById('final-box').innerHTML =
+      `<strong>Patient</strong>${payload.name}<br>
+       <strong>Age / Gender</strong>${payload.age} yrs / ${payload.gender}<br>
+       <strong>WhatsApp</strong>${payload.phone}<br>
+       <strong>Concern</strong>${payload.concern}<br>
+       <strong>Severity</strong>${payload.severity}<br>
+       <strong>Signature</strong>${payload.signature}<br>
+       <strong>Registered On</strong>${payload.signedOn}`;
+  }
+
+  // Show Patient ID badge
+  if (patientId) {
+    const pidEl = document.getElementById('success-pid');
+    pidEl.textContent = 'Patient ID: ' + patientId;
+    pidEl.style.display = 'block';
+  }
+
+  // Set WhatsApp link
+  const waMsg = encodeURIComponent(
+    `Hello Dr. Anjum Clinic! I just registered.\nName: ${payload?.name}\nPatient ID: ${patientId || 'N/A'}\nConcern: ${payload?.concern}`
+  );
+  document.getElementById('wa-link').href = `https://wa.me/${CONFIG.whatsappNum}?text=${waMsg}`;
+
+  goPage(5);
+}
+
+function showFeedback(type, title, msg) {
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback show ' + type;
+  document.getElementById('fb-icon').textContent = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+  document.getElementById('fb-title').textContent = title;
+  document.getElementById('fb-msg').textContent   = msg;
+}
+
+function hideFeedback() {
+  document.getElementById('feedback').className = 'feedback';
+}
+
+function resetBtn(btn) {
+  if (!btn) btn = document.getElementById('btn-submit');
+  btn.disabled = false;
+  btn.innerHTML = 'Submit Registration →';
+}
+
+function resetAll() {
+  // Reset all inputs
+  document.querySelectorAll('input:not([readonly]), select, textarea').forEach(el => {
+    if (el.type === 'checkbox') el.checked = false;
+    else el.value = '';
+  });
+  // Reset chips
+  document.querySelectorAll('.chip.sel, .s-chip.sel').forEach(c => c.classList.remove('sel'));
+  document.querySelectorAll('.sev.sel').forEach(s => s.classList.remove('sel'));
+  // Reset check rows
+  document.querySelectorAll('.chk-row').forEach(r => r.classList.remove('checked','invalid-row'));
+  // Reset errors
+  document.querySelectorAll('.field-error.show').forEach(e => e.classList.remove('show'));
+  document.querySelectorAll('.invalid').forEach(e => e.classList.remove('invalid'));
+  // Reset state
+  state.concern = state.duration = state.severity = '';
+  state.curPage = 1;
+  // Reset submit btn
+  resetBtn();
+  // Reset date
+  document.getElementById('v-date').value = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  });
+  goPage(1);
+}
+</script>
+</body>
+</html>

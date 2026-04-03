@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+  /* ── Reset & base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #1a73e8;
+    --primary-dark: #1557b0;
+    --success: #1e8e3e;
+    --danger: #d93025;
+    --warn: #f9a825;
+    --surface: #ffffff;
+    --bg: #f8f9fa;
+    --border: #dadce0;
+    --text: #202124;
+    --muted: #5f6368;
+    --radius: 8px;
+    --font: 'Google Sans', Roboto, Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--primary);
+    color: #fff;
+    padding: 14px 16px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header h1 { font-size: 15px; font-weight: 500; letter-spacing: .2px; }
+  .header p  { font-size: 11px; opacity: .85; margin-top: 2px; }
+
+  /* ── Section cards ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin: 10px;
+    overflow: hidden;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .section-body { padding: 12px 14px; }
+
+  /* ── Form fields ── */
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 4px;
+    letter-spacing: .3px;
+  }
+  label .req { color: var(--danger); margin-left: 2px; }
+
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color .15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(26,115,232,.15);
+  }
+  input.error, select.error { border-color: var(--danger); }
+  textarea { resize: vertical; min-height: 60px; }
+
+  /* ── Two-column grid ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── Age badge ── */
+  .age-badge {
+    display: inline-block;
+    background: #e8f0fe;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    margin-top: 4px;
+    min-height: 22px;
+  }
+
+  /* ── Duplicate warning ── */
+  .dup-warn {
+    display: none;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #92400e;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .dup-warn.show { display: block; }
+
+  /* ── Toast notification ── */
+  #toast {
+    position: fixed;
+    bottom: 70px;
+    left: 10px;
+    right: 10px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    color: #fff;
+    font-weight: 500;
+    text-align: center;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    z-index: 100;
+    line-height: 1.4;
+  }
+  #toast.show { opacity: 1; }
+  #toast.success { background: var(--success); }
+  #toast.error   { background: var(--danger); }
+  #toast.warn    { background: var(--warn); color: #333; }
+
+  /* ── Patient ID chip ── */
+  .pid-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #e8f0fe;
+    border: 1px solid #c2d7fc;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+  .pid-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+
+  /* ── Footer actions ── */
+  .footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  .btn {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 6px;
+    border: none;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    text-align: center;
+  }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn-secondary { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { background: #e8eaed; }
+  .btn-danger { background: #fce8e6; color: var(--danger); border: 1px solid #f5c6c2; }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Status select colors ── */
+  select[name="status"] option[value="Active"]   { color: var(--success); }
+  select[name="status"] option[value="Inactive"] { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- Injected by Apps Script template -->
+<script>
+  const EDIT_MODE  = <?= editMode  ? 'true' : 'false' ?>;
+  const PATIENT_ID = <?= JSON.stringify(patientId || '') ?>;
+</script>
+
+<!-- ── Header ── -->
+<div class="header" id="header">
+  <h1 id="header-title">New Patient Registration</h1>
+  <p id="header-sub">Fill all required fields marked with *</p>
+</div>
+
+<!-- ── Patient ID chip (edit mode only) ── -->
+<div style="padding: 10px 10px 0; display:none" id="pid-row">
+  <div class="pid-chip">
+    <span class="dot"></span>
+    <span id="pid-display"></span>
+  </div>
+</div>
+
+<form id="kycForm" novalidate>
+
+  <!-- ══ SECTION 1: Personal Info ══ -->
+  <div class="section">
+    <div class="section-title">Personal Information</div>
+    <div class="section-body">
+
+      <div class="field">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" name="fullName" placeholder="e.g. Priya Sharma"
+               oninput="clearErr(this)" autocomplete="off">
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label>Date of Birth <span class="req">*</span></label>
+          <input type="date" name="dateOfBirth" onchange="updateAge(this.value)" oninput="clearErr(this)">
+        </div>
+        <div class="field">
+          <label>Calculated Age</label>
+          <div class="age-badge" id="ageBadge">—</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label>Gender <span class="req">*</span></label>
+          <select name="gender" oninput="clearErr(this)">
+            <option value="">Select…</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+            <option>Prefer Not to Say</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Blood Group</label>
+          <select name="bloodGroup">
+            <option value="">Unknown</option>
+            <option>A+</option><option>A-</option>
+            <option>B+</option><option>B-</option>
+            <option>AB+</option><option>AB-</option>
+            <option>O+</option><option>O-</option>
+          </select>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 2: Contact ══ -->
+  <div class="section">
+    <div class="section-title">Contact Details</div>
+    <div class="section-body">
+
+      <div class="field">
+        <label>Phone Number <span class="req">*</span></label>
+        <input type="tel" name="phone" placeholder="+91 98765 43210"
+               oninput="clearErr(this); clearDupWarn()">
+        <div class="dup-warn" id="dupWarn"></div>
+      </div>
+
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" name="email" placeholder="patient@email.com" oninput="clearErr(this)">
+      </div>
+
+      <div class="field">
+        <label>Address</label>
+        <textarea name="address" placeholder="Street, City, State, PIN" rows="2"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 3: Medical Info ══ -->
+  <div class="section">
+    <div class="section-title">Medical Information</div>
+    <div class="section-body">
+
+      <div class="field">
+        <label>Emergency Contact</label>
+        <input type="text" name="emergencyContact" placeholder="Name — +91 XXXXX XXXXX">
+      </div>
+
+      <div class="field">
+        <label>Medical History</label>
+        <textarea name="medicalHistory" placeholder="Diabetes, Hypertension, prior surgeries…" rows="3"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Known Allergies</label>
+        <textarea name="allergies" placeholder="Penicillin, Sulfa drugs, Latex…" rows="2"></textarea>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ SECTION 4: Admin / Other ══ -->
+  <div class="section">
+    <div class="section-title">Administrative</div>
+    <div class="section-body">
+
+      <div class="grid-2">
+        <div class="field">
+          <label>Insurance Number</label>
+          <input type="text" name="insuranceNo" placeholder="Ins. policy no.">
+        </div>
+        <div class="field">
+          <label>Referred By</label>
+          <input type="text" name="referredBy" placeholder="Dr. / Hospital / Walk-in">
+        </div>
+      </div>
+
+      <!-- Status only shown in edit mode -->
+      <div class="field" id="statusField" style="display:none">
+        <label>Patient Status</label>
+        <select name="status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+          <option value="Deceased">Deceased</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- bottom padding so footer doesn't cover last field -->
+  <div style="height:12px"></div>
+
+</form><!-- end form -->
+
+<!-- ── Footer Buttons ── -->
+<div class="footer">
+  <button class="btn btn-secondary" type="button" onclick="resetForm()">Clear</button>
+  <button class="btn btn-primary" type="button" id="submitBtn" onclick="handleSubmit()">
+    Save Patient
+  </button>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ── Apply clinic branding from Settings ──────────────────────
+google.script.run
+  .withSuccessHandler(function(cfg) {
+    if (cfg.primaryColor) {
+      document.documentElement.style.setProperty('--primary', cfg.primaryColor);
+    }
+    document.getElementById('header-sub').textContent =
+      cfg.clinicName + ' — ' + (EDIT_MODE ? 'Edit Patient Record' : 'New Patient');
+  })
+  .getClinicSettings();
+
+
+// ── EDIT MODE SETUP ──────────────────────────────────────────
+if (EDIT_MODE && PATIENT_ID) {
+  document.getElementById('header-title').textContent = 'Edit Patient';
+  document.getElementById('pid-row').style.display    = 'block';
+  document.getElementById('pid-display').textContent  = PATIENT_ID;
+  document.getElementById('statusField').style.display = 'block';
+  document.getElementById('submitBtn').textContent    = 'Update Patient';
+
+  // Load existing patient data
+  google.script.run
+    .withSuccessHandler(prefillForm)
+    .withFailureHandler(function(e) { showToast('Failed to load patient: ' + e.message, 'error'); })
+    .getPatientById(PATIENT_ID);
+}
+
+function prefillForm(data) {
+  if (!data) { showToast('Patient not found.', 'error'); return; }
+  const f = document.getElementById('kycForm');
+  Object.keys(data).forEach(key => {
+    const el = f.querySelector('[name="' + key + '"]');
+    if (el) el.value = data[key] || '';
+  });
+  updateAge(data.dateOfBirth);
+}
+
+
+// ── FORM SUBMISSION ──────────────────────────────────────────
+function handleSubmit() {
+  if (!validateForm()) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving…';
+
+  const data = collectFormData();
+
+  if (EDIT_MODE) {
+    google.script.run
+      .withSuccessHandler(onUpdateResult)
+      .withFailureHandler(onServerError)
+      .updatePatient(PATIENT_ID, data);
+  } else {
+    google.script.run
+      .withSuccessHandler(onSaveResult)
+      .withFailureHandler(onServerError)
+      .submitNewPatient(data);
+  }
+}
+
+function onSaveResult(result) {
+  resetSubmitBtn();
+  if (result.success) {
+    showToast('✓ Registered! ID: ' + result.patientId, 'success');
+    setTimeout(resetForm, 2000);
+  } else if (result.duplicate) {
+    document.getElementById('dupWarn').textContent = result.message;
+    document.getElementById('dupWarn').classList.add('show');
+    showToast('Duplicate phone detected', 'warn');
+  } else {
+    showToast(result.message, 'error');
+  }
+}
+
+function onUpdateResult(result) {
+  resetSubmitBtn();
+  showToast(result.success ? '✓ ' + result.message : result.message,
+            result.success ? 'success' : 'error');
+}
+
+function onServerError(err) {
+  resetSubmitBtn();
+  showToast('Server error: ' + err.message, 'error');
+}
+
+
+// ── FORM HELPERS ─────────────────────────────────────────────
+function collectFormData() {
+  const f    = document.getElementById('kycForm');
+  const els  = f.querySelectorAll('input, select, textarea');
+  const data = {};
+  els.forEach(el => { if (el.name) data[el.name] = el.value.trim(); });
+  return data;
+}
+
+function validateForm() {
+  let ok = true;
+  const f = document.getElementById('kycForm');
+
+  ['fullName','phone','gender','dateOfBirth'].forEach(n => {
+    const el = f.querySelector('[name="' + n + '"]');
+    if (!el || !el.value.trim()) { if(el) el.classList.add('error'); ok = false; }
+  });
+
+  if (!ok) showToast('Please fill all required fields.', 'error');
+  return ok;
+}
+
+function clearErr(el)    { el.classList.remove('error'); }
+function clearDupWarn()  {
+  document.getElementById('dupWarn').classList.remove('show');
+  document.getElementById('dupWarn').textContent = '';
+}
+
+function resetForm() {
+  if (EDIT_MODE) return;  // Don't clear in edit mode
+  document.getElementById('kycForm').reset();
+  document.getElementById('ageBadge').textContent = '—';
+  clearDupWarn();
+}
+
+function resetSubmitBtn() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = false;
+  btn.innerHTML = EDIT_MODE ? 'Update Patient' : 'Save Patient';
+}
+
+function updateAge(dobValue) {
+  const badge = document.getElementById('ageBadge');
+  if (!dobValue) { badge.textContent = '—'; return; }
+
+  const dob   = new Date(dobValue);
+  const today = new Date();
+  let age     = today.getFullYear() - dob.getFullYear();
+  const m     = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+
+  badge.textContent = (age >= 0 && age < 150) ? age + ' yrs' : '—';
+}
+
+
+// ── TOAST ────────────────────────────────────────────────────
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent  = msg;
+  t.className    = 'show ' + (type || 'success');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 3500);
+}
+</script>
+</body>
+</html>

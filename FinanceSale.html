@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#1a73e8;--pd:#1557b0;--pl:#e8f0fe;
+  --s:#1e8e3e;--sb:#e6f4ea;
+  --e:#d93025;--eb:#fce8e6;
+  --bg:#f8f9fa;--sur:#fff;--bdr:#dadce0;
+  --t1:#202124;--t2:#5f6368;--t3:#9aa0a6;
+  --fn:'Google Sans',Roboto,Arial,sans-serif;
+}
+body{font-family:var(--fn);font-size:13px;color:var(--t1);background:var(--bg)}
+
+/* Header */
+.hdr{background:var(--p);color:#fff;padding:13px 16px 11px;position:sticky;top:0;z-index:10}
+.hdr h1{font-size:14px;font-weight:500}
+.hdr p{font-size:11px;opacity:.82;margin-top:2px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid rgba(255,255,255,.2);background:var(--p)}
+.stat{text-align:center;padding:7px 4px;border-left:1px solid rgba(255,255,255,.15)}
+.stat:first-child{border-left:none}
+.stat-val{font-size:15px;font-weight:600;color:#fff;line-height:1}
+.stat-lbl{font-size:9px;color:rgba(255,255,255,.8);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+
+/* Tabs */
+.tabs{display:flex;background:var(--sur);border-bottom:2px solid var(--bdr)}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab.active{color:var(--p);border-bottom-color:var(--p)}
+
+/* Sections */
+.pane{display:none}.pane.active{display:block}
+.section{background:var(--sur);border:1px solid var(--bdr);border-radius:8px;margin:10px;overflow:hidden}
+.section-title{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--t2);padding:9px 13px 7px;border-bottom:1px solid var(--bdr);background:var(--bg)}
+.sec-body{padding:12px 13px}
+
+/* Fields */
+.field{margin-bottom:11px}.field:last-child{margin-bottom:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:11px;font-weight:500;color:var(--t2);margin-bottom:3px}
+label .req{color:var(--e);margin-left:1px}
+input,select,textarea{width:100%;border:1.5px solid var(--bdr);border-radius:6px;padding:7px 9px;font-family:var(--fn);font-size:13px;color:var(--t1);background:var(--sur);outline:none;transition:border-color .14s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--p);box-shadow:0 0 0 2px rgba(26,115,232,.12)}
+input.invalid,select.invalid{border-color:var(--e)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 5 5-5z' fill='%235f6368'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.field-err{display:none;font-size:11px;color:var(--e);margin-top:3px}
+.field-err.show{display:block}
+
+/* Live total box */
+.total-box{background:var(--pl);border:1px solid #c2d7fc;border-radius:8px;padding:12px;margin:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.total-item-lbl{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.total-item-val{font-size:16px;font-weight:600;color:var(--p)}
+.total-item-val.grand{font-size:20px;color:var(--s)}
+
+/* Patient chip */
+.pt-wrap{position:relative}
+.pt-search-row{position:relative}
+.pt-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:14px;height:14px;fill:var(--t3);pointer-events:none}
+.pt-search{padding-left:30px}
+.pt-dd{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--sur);border:1px solid var(--bdr);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:20;max-height:180px;overflow-y:auto;display:none}
+.pt-dd.open{display:block}
+.pt-opt{padding:8px 12px;cursor:pointer;border-bottom:1px solid #f1f3f4}
+.pt-opt:last-child{border-bottom:none}
+.pt-opt:hover{background:var(--pl)}
+.pt-opt-name{font-weight:500;font-size:12px}
+.pt-opt-sub{font-size:11px;color:var(--t2);margin-top:1px}
+.pt-chip{display:none;align-items:center;gap:8px;background:var(--pl);border:1px solid #c2d7fc;border-radius:6px;padding:7px 10px;margin-top:6px}
+.pt-chip.show{display:flex}
+.pt-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.pt-chip-info{flex:1;min-width:0}
+.pt-chip-name{font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-chip-sub{font-size:10px;color:var(--t2)}
+.pt-chip-clr{background:none;border:none;cursor:pointer;color:var(--t3);font-size:16px;padding:0 2px;line-height:1}
+.pt-chip-clr:hover{color:var(--e)}
+
+/* Recent sales list */
+.sale-card{background:var(--sur);border:1px solid var(--bdr);border-radius:6px;margin-bottom:6px;overflow:hidden}
+.sale-card-head{display:flex;align-items:center;gap:8px;padding:8px 11px}
+.sale-id{font-size:10px;font-family:monospace;color:var(--t3);min-width:84px}
+.sale-name{flex:1;font-weight:500;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sale-amount{font-weight:600;font-size:13px;color:var(--s);flex-shrink:0}
+.pay-pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:10px;flex-shrink:0;letter-spacing:.4px}
+.pay-Paid{background:var(--sb);color:var(--s)}
+.pay-Pending{background:#fef8e1;color:#c17700}
+.pay-Partial{background:#fce8e6;color:var(--e)}
+.pay-Refunded{background:#f3e5f5;color:#7b1fa2}
+.sale-meta{font-size:10px;color:var(--t3);padding:0 11px 8px}
+
+/* Footer */
+.footer{position:sticky;bottom:0;background:var(--sur);border-top:1px solid var(--bdr);padding:9px 12px;display:flex;gap:8px;z-index:10}
+.btn{flex:1;padding:9px 12px;border-radius:6px;border:none;font-family:var(--fn);font-size:13px;font-weight:500;cursor:pointer;transition:background .14s;text-align:center}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-p{background:var(--p);color:#fff}.btn-p:hover:not(:disabled){background:var(--pd)}
+.btn-s{background:var(--bg);color:var(--t2);border:1px solid var(--bdr)}.btn-s:hover:not(:disabled){background:#e8eaed}
+
+/* Toast */
+#toast{position:fixed;bottom:62px;left:10px;right:10px;padding:9px 13px;border-radius:8px;font-size:12px;color:#fff;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:100;font-weight:500}
+#toast.show{opacity:1}
+#toast.ok{background:var(--s)}#toast.err{background:var(--e)}#toast.warn{background:#f9a825;color:#333}
+
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:4px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:24px 16px;color:var(--t3);font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <h1 id="hdr-title">Record Sale / Invoice</h1>
+  <p id="hdr-sub">Loading…</p>
+</div>
+
+<!-- Stats bar -->
+<div class="stats">
+  <div class="stat"><div class="stat-val" id="s-tr">—</div><div class="stat-lbl">Today ₹</div></div>
+  <div class="stat"><div class="stat-val" id="s-tc">—</div><div class="stat-lbl">Today Sales</div></div>
+  <div class="stat"><div class="stat-val" id="s-mr">—</div><div class="stat-lbl">Month ₹</div></div>
+  <div class="stat"><div class="stat-val" id="s-mc">—</div><div class="stat-lbl">Month Sales</div></div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('new',this)">New Sale</div>
+  <div class="tab"        onclick="switchTab('recent',this)">Recent Sales</div>
+</div>
+
+<!-- ══ TAB: New Sale ══ -->
+<div class="pane active" id="pane-new">
+
+  <!-- Patient (optional) -->
+  <div class="section">
+    <div class="section-title">Patient (Optional)</div>
+    <div class="sec-body">
+      <div class="field">
+        <label>Link to Patient</label>
+        <div class="pt-wrap">
+          <div class="pt-search-row">
+            <svg class="pt-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" class="pt-search" id="ptSearch" placeholder="Search by name or ID (optional)…" oninput="handlePtSearch(this.value)" autocomplete="off">
+          </div>
+          <div class="pt-dd" id="ptDd"></div>
+          <div class="pt-chip" id="ptChip">
+            <div class="pt-avatar" id="ptAv">?</div>
+            <div class="pt-chip-info">
+              <div class="pt-chip-name" id="ptChipName">—</div>
+              <div class="pt-chip-sub"  id="ptChipSub">—</div>
+            </div>
+            <button class="pt-chip-clr" type="button" onclick="clearPt()">×</button>
+          </div>
+        </div>
+        <input type="hidden" id="patientId">
+      </div>
+    </div>
+  </div>
+
+  <!-- Item Details -->
+  <div class="section">
+    <div class="section-title">Item Details</div>
+    <div class="sec-body">
+      <div class="grid2">
+        <div class="field">
+          <label>Item Type <span class="req">*</span></label>
+          <select id="itemType" onchange="clearErr(this)">
+            <option value="">Select…</option>
+            <option>Medicine</option><option>Service</option>
+            <option>Product</option><option>Lab Test</option><option>Other</option>
+          </select>
+          <div class="field-err" id="err-itemType">Required</div>
+        </div>
+        <div class="field">
+          <label>Sale Date</label>
+          <input type="date" id="saleDate">
+        </div>
+      </div>
+      <div class="field">
+        <label>Item Name / Description <span class="req">*</span></label>
+        <input type="text" id="itemName" placeholder="e.g. Paracetamol 500mg, Consultation" oninput="clearErr(this)">
+        <div class="field-err" id="err-itemName">Required</div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Quantity <span class="req">*</span></label>
+          <input type="number" id="quantity" value="1" min="1" step="1" oninput="recalc(); clearErr(this)">
+          <div class="field-err" id="err-quantity">Required</div>
+        </div>
+        <div class="field">
+          <label>Unit Price <span class="req">*</span></label>
+          <input type="number" id="unitPrice" placeholder="0.00" min="0" step="0.01" oninput="recalc(); clearErr(this)">
+          <div class="field-err" id="err-unitPrice">Required</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Discount %</label>
+        <input type="number" id="discountPct" value="0" min="0" max="100" step="0.1" oninput="recalc()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Total -->
+  <div class="total-box">
+    <div>
+      <div class="total-item-lbl">Subtotal</div>
+      <div class="total-item-val" id="tot-sub">₹0.00</div>
+    </div>
+    <div>
+      <div class="total-item-lbl">Discount</div>
+      <div class="total-item-val" id="tot-dis">₹0.00</div>
+    </div>
+    <div>
+      <div class="total-item-lbl">Total</div>
+      <div class="total-item-val grand" id="tot-amt">₹0.00</div>
+    </div>
+  </div>
+
+  <!-- Payment -->
+  <div class="section">
+    <div class="section-title">Payment</div>
+    <div class="sec-body">
+      <div class="grid2">
+        <div class="field">
+          <label>Payment Mode <span class="req">*</span></label>
+          <select id="paymentMode" onchange="clearErr(this)">
+            <option value="">Select…</option>
+            <option>Cash</option><option>UPI</option>
+            <option>Card</option><option>Insurance</option>
+            <option>Bank Transfer</option><option>Credit</option>
+          </select>
+          <div class="field-err" id="err-paymentMode">Required</div>
+        </div>
+        <div class="field">
+          <label>Payment Status</label>
+          <select id="paymentStatus">
+            <option value="Paid">Paid</option>
+            <option value="Pending">Pending</option>
+            <option value="Partial">Partial</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <input type="text" id="notes" placeholder="Optional notes…">
+      </div>
+    </div>
+  </div>
+
+  <div style="height:12px"></div>
+</div><!-- /pane-new -->
+
+<!-- ══ TAB: Recent Sales ══ -->
+<div class="pane" id="pane-recent">
+  <div style="padding:10px">
+    <div id="recentList"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer" id="footerBar">
+  <button class="btn btn-s" onclick="resetForm()">Clear</button>
+  <button class="btn btn-p" id="submitBtn" onclick="handleSubmit()">Save Sale</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let ptTimer = null;
+let currency = '₹';
+
+// Bootstrap
+google.script.run.withSuccessHandler(function(cfg) {
+  if (!cfg) return;
+  document.documentElement.style.setProperty('--p', cfg.primaryColor || '#1a73e8');
+  currency = cfg.currency || '₹';
+  document.getElementById('hdr-sub').textContent = cfg.clinicName + ' — Record Sale';
+  document.getElementById('saleDate').value = cfg.todayIso || '';
+  // Update currency labels
+  document.querySelectorAll('.total-item-lbl').forEach((el, i) => {
+    if (i > 0) return;
+  });
+  updateCurrencyLabels();
+}).getFinanceBootstrap();
+
+google.script.run.withSuccessHandler(function(stats) {
+  if (!stats) return;
+  document.getElementById('s-tr').textContent = fmt(stats.todayRevenue);
+  document.getElementById('s-tc').textContent = stats.todayCount;
+  document.getElementById('s-mr').textContent = fmt(stats.monthRevenue);
+  document.getElementById('s-mc').textContent = stats.monthCount;
+}).getSaleStats();
+
+function updateCurrencyLabels() {
+  document.getElementById('s-tr').parentElement.querySelector('.stat-lbl').textContent = 'Today ' + currency;
+  document.getElementById('s-mr').parentElement.querySelector('.stat-lbl').textContent = 'Month ' + currency;
+}
+
+// Tabs
+function switchTab(name, el) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('footerBar').style.display = name === 'new' ? 'flex' : 'none';
+  if (name === 'recent') loadRecent();
+}
+
+// Live calculation
+function recalc() {
+  const qty  = parseFloat(document.getElementById('quantity').value)   || 0;
+  const up   = parseFloat(document.getElementById('unitPrice').value)  || 0;
+  const disc = parseFloat(document.getElementById('discountPct').value)|| 0;
+  const sub  = qty * up;
+  const da   = sub * disc / 100;
+  const tot  = sub - da;
+  document.getElementById('tot-sub').textContent = currency + sub.toFixed(2);
+  document.getElementById('tot-dis').textContent = currency + da.toFixed(2);
+  document.getElementById('tot-amt').textContent = currency + tot.toFixed(2);
+}
+
+// Patient search
+const AV_COLORS = ['#1a73e8','#0f9d58','#e53935','#8e24aa','#f4511e','#0288d1'];
+function avColor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff;return AV_COLORS[Math.abs(h)%AV_COLORS.length]}
+function initials(n){return(n||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+
+function handlePtSearch(val) {
+  clearTimeout(ptTimer);
+  const dd = document.getElementById('ptDd');
+  if (!val || val.length < 2) { dd.classList.remove('open'); return; }
+  ptTimer = setTimeout(() => {
+    google.script.run.withSuccessHandler(pts => {
+      if (!pts.length) {
+        dd.innerHTML = '<div style="padding:8px 12px;font-size:11px;color:#9aa0a6">No patients found</div>';
+      } else {
+        dd.innerHTML = pts.map(p => `
+          <div class="pt-opt" onclick='selectPt(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
+            <div class="pt-opt-name">${esc(p.fullName)}</div>
+            <div class="pt-opt-sub">${esc(p.patientId)} · ${esc(p.phone)}</div>
+          </div>`).join('');
+      }
+      dd.classList.add('open');
+    }).searchPatientsForFinance(val);
+  }, 280);
+}
+
+function selectPt(p) {
+  document.getElementById('patientId').value = p.patientId;
+  document.getElementById('ptSearch').value  = '';
+  document.getElementById('ptDd').classList.remove('open');
+  const col = avColor(p.fullName);
+  document.getElementById('ptAv').textContent = initials(p.fullName);
+  document.getElementById('ptAv').style.background = col;
+  document.getElementById('ptChipName').textContent = p.fullName;
+  document.getElementById('ptChipSub').textContent  = p.patientId + ' · ' + p.phone;
+  document.getElementById('ptChip').classList.add('show');
+  document.getElementById('ptSearch').parentElement.style.display = 'none';
+}
+function clearPt() {
+  document.getElementById('patientId').value = '';
+  document.getElementById('ptChip').classList.remove('show');
+  document.getElementById('ptSearch').parentElement.style.display = 'block';
+  document.getElementById('ptSearch').value = '';
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('ptSearch').contains(e.target) &&
+      !document.getElementById('ptDd').contains(e.target))
+    document.getElementById('ptDd').classList.remove('open');
+});
+
+// Submit
+function handleSubmit() {
+  const fields = ['itemType','itemName','quantity','unitPrice','paymentMode'];
+  let ok = true;
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el.value.toString().trim()) { el.classList.add('invalid'); document.getElementById('err-'+id).classList.add('show'); ok=false; }
+  });
+  if (!ok) { toast('Please fill all required fields', 'err'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+
+  const data = {
+    patientId    : document.getElementById('patientId').value,
+    saleDate     : document.getElementById('saleDate').value,
+    itemType     : document.getElementById('itemType').value,
+    itemName     : document.getElementById('itemName').value,
+    quantity     : document.getElementById('quantity').value,
+    unitPrice    : document.getElementById('unitPrice').value,
+    discountPct  : document.getElementById('discountPct').value,
+    paymentMode  : document.getElementById('paymentMode').value,
+    paymentStatus: document.getElementById('paymentStatus').value,
+    notes        : document.getElementById('notes').value
+  };
+
+  google.script.run
+    .withSuccessHandler(res => {
+      resetBtn();
+      if (res.success) {
+        toast('✓ ' + res.message, 'ok');
+        refreshStats();
+        setTimeout(resetForm, 2000);
+      } else {
+        toast(res.message, 'err');
+      }
+    })
+    .withFailureHandler(e => { resetBtn(); toast('Error: '+e.message,'err'); })
+    .recordSale(data);
+}
+
+function resetBtn() {
+  const b = document.getElementById('submitBtn');
+  b.disabled = false; b.innerHTML = 'Save Sale';
+}
+function resetForm() {
+  document.getElementById('itemType').value = '';
+  document.getElementById('itemName').value = '';
+  document.getElementById('quantity').value = '1';
+  document.getElementById('unitPrice').value = '';
+  document.getElementById('discountPct').value = '0';
+  document.getElementById('paymentMode').value = '';
+  document.getElementById('paymentStatus').value = 'Paid';
+  document.getElementById('notes').value = '';
+  clearPt();
+  recalc();
+  document.querySelectorAll('.invalid').forEach(e=>e.classList.remove('invalid'));
+  document.querySelectorAll('.field-err.show').forEach(e=>e.classList.remove('show'));
+}
+
+// Recent sales
+function loadRecent() {
+  document.getElementById('recentList').innerHTML = '<div class="empty">Loading…</div>';
+  google.script.run.withSuccessHandler(renderRecent).getRecentSales(20);
+}
+function renderRecent(sales) {
+  const el = document.getElementById('recentList');
+  if (!sales || !sales.length) { el.innerHTML = '<div class="empty">No sales recorded yet.</div>'; return; }
+  el.innerHTML = sales.map(s => `
+    <div class="sale-card">
+      <div class="sale-card-head">
+        <div class="sale-id">${esc(s.saleId)}</div>
+        <div class="sale-name">${esc(s.itemName)} ${s.patientName && s.patientName !== 'Walk-in' ? '· '+esc(s.patientName) : ''}</div>
+        <div class="sale-amount">${currency}${Number(s.totalAmount||0).toFixed(2)}</div>
+        <span class="pay-pill pay-${s.paymentStatus||'Paid'}">${s.paymentStatus||'Paid'}</span>
+      </div>
+      <div class="sale-meta">${esc(s.saleDate)} · ${esc(s.paymentMode)} · ${esc(s.invoiceNo)}</div>
+    </div>`).join('');
+}
+
+function refreshStats() {
+  google.script.run.withSuccessHandler(function(stats) {
+    if (!stats) return;
+    document.getElementById('s-tr').textContent = fmt(stats.todayRevenue);
+    document.getElementById('s-tc').textContent = stats.todayCount;
+    document.getElementById('s-mr').textContent = fmt(stats.monthRevenue);
+    document.getElementById('s-mc').textContent = stats.monthCount;
+  }).getSaleStats();
+}
+
+function clearErr(el) { el.classList.remove('invalid'); const e=document.getElementById('err-'+el.id); if(e) e.classList.remove('show'); }
+function fmt(n) { return Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0}); }
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function toast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+type;clearTimeout(t._t);t._t=setTimeout(()=>{t.className=''},3500)}
+</script>
+</body>
+</html>

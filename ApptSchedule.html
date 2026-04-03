@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --p:#1a73e8; --pd:#1557b0; --pl:#e8f0fe;
+  --s:#1e8e3e; --sb:#e6f4ea;
+  --e:#d93025; --eb:#fce8e6;
+  --w:#f9a825; --wb:#fef8e1;
+  --bg:#f8f9fa; --sur:#fff; --bdr:#dadce0;
+  --t1:#202124; --t2:#5f6368; --t3:#9aa0a6;
+  --fn:'Google Sans',Roboto,Arial,sans-serif;
+}
+body { font-family:var(--fn); font-size:13px; color:var(--t1); background:var(--bg); }
+
+/* ── Header ── */
+.hdr { background:var(--p); color:#fff; padding:12px 14px 10px; }
+.hdr-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.hdr h1  { font-size:14px; font-weight:500; }
+.new-btn { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.35); border-radius:5px; color:#fff; font-family:var(--fn); font-size:11px; font-weight:500; padding:5px 10px; cursor:pointer; transition:background .12s; white-space:nowrap; }
+.new-btn:hover { background:rgba(255,255,255,.28); }
+
+/* ── Stats ── */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid rgba(255,255,255,.2); }
+.stat { text-align:center; padding:7px 4px; }
+.stat-val { font-size:18px; font-weight:600; line-height:1; }
+.stat-lbl { font-size:9px; opacity:.82; margin-top:2px; letter-spacing:.3px; text-transform:uppercase; }
+
+/* ── Date nav ── */
+.date-nav { display:flex; align-items:center; background:var(--sur); border-bottom:1px solid var(--bdr); padding:8px 10px; gap:6px; position:sticky; top:0; z-index:5; }
+.nav-btn { background:none; border:1px solid var(--bdr); border-radius:5px; padding:5px 8px; cursor:pointer; font-size:14px; color:var(--t2); transition:all .12s; line-height:1; }
+.nav-btn:hover { border-color:var(--p); color:var(--p); background:var(--pl); }
+.nav-date-wrap { flex:1; }
+.nav-date-label { font-weight:500; font-size:13px; color:var(--t1); display:block; line-height:1.2; }
+.nav-date-sub   { font-size:10px; color:var(--t3); }
+.today-chip { font-size:10px; background:var(--pl); color:var(--p); border:1px solid rgba(26,115,232,.2); border-radius:10px; padding:2px 7px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.today-chip:hover { background:#d2e3fc; }
+input[type="date"]#datePicker { border:1px solid var(--bdr); border-radius:5px; padding:4px 7px; font-size:12px; font-family:var(--fn); outline:none; color:var(--t1); }
+input[type="date"]#datePicker:focus { border-color:var(--p); }
+
+/* ── Filter bar ── */
+.filter-bar { display:flex; gap:4px; padding:8px 8px 0; flex-wrap:wrap; }
+.filter-chip { padding:4px 10px; border:1.5px solid var(--bdr); border-radius:14px; font-size:11px; font-weight:500; color:var(--t2); cursor:pointer; background:var(--sur); transition:all .12s; white-space:nowrap; }
+.filter-chip:hover  { border-color:var(--p); color:var(--p); }
+.filter-chip.active { background:var(--p); border-color:var(--p); color:#fff; }
+
+/* ── Appointment cards ── */
+#apptList { padding:8px; }
+
+.empty-state { text-align:center; padding:40px 16px; color:var(--t3); }
+.empty-state .icon { font-size:32px; margin-bottom:8px; }
+.loading-dots { display:inline-flex; gap:4px; }
+.loading-dots span { width:6px; height:6px; border-radius:50%; background:var(--p); animation:bounce .75s ease-in-out infinite; }
+.loading-dots span:nth-child(2){animation-delay:.15s}
+.loading-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+
+.appt-card { background:var(--sur); border:1px solid var(--bdr); border-radius:8px; margin-bottom:7px; overflow:hidden; }
+.appt-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.appt-card.status-Completed  { border-left:3px solid var(--s); }
+.appt-card.status-Cancelled  { border-left:3px solid var(--e); opacity:.7; }
+.appt-card.status-No-Show    { border-left:3px solid #9e9e9e; opacity:.7; }
+.appt-card.status-Scheduled  { border-left:3px solid var(--p); }
+.appt-card.status-Rescheduled{ border-left:3px solid var(--w); }
+
+.card-head { display:flex; align-items:center; gap:8px; padding:9px 11px; cursor:pointer; }
+.card-head:hover { background:#fafafa; }
+
+.time-badge { font-size:11px; font-weight:600; color:var(--p); background:var(--pl); border-radius:4px; padding:3px 7px; white-space:nowrap; min-width:64px; text-align:center; flex-shrink:0; }
+.appt-card.status-Completed  .time-badge { color:var(--s); background:var(--sb); }
+.appt-card.status-Cancelled  .time-badge { color:#757575; background:#f5f5f5; }
+.appt-card.status-No-Show    .time-badge { color:#757575; background:#f5f5f5; }
+.appt-card.status-Rescheduled .time-badge { color:#c17700; background:var(--wb); }
+
+.card-info { flex:1; min-width:0; }
+.card-name  { font-weight:500; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-meta  { font-size:11px; color:var(--t2); margin-top:1px; display:flex; gap:6px; flex-wrap:wrap; }
+.meta-pill  { background:var(--bg); border-radius:3px; padding:1px 5px; font-size:10px; color:var(--t2); }
+
+.status-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.dot-Scheduled   { background:var(--p); }
+.dot-Completed   { background:var(--s); }
+.dot-Cancelled   { background:var(--e); }
+.dot-No-Show     { background:#9e9e9e; }
+.dot-Rescheduled { background:var(--w); }
+
+.expand-icon { font-size:14px; color:var(--t3); transition:transform .18s; flex-shrink:0; }
+.expand-icon.open { transform:rotate(180deg); }
+
+/* ── Card body (expandable) ── */
+.card-body { display:none; border-top:1px solid var(--bdr); background:#fafafa; padding:10px 12px; }
+.card-body.open { display:block; }
+
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin-bottom:10px; }
+.d-lbl { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; }
+.d-val { font-size:12px; font-weight:500; color:var(--t1); margin-top:1px; word-break:break-word; }
+.d-val.empty { color:var(--t3); font-weight:400; font-style:italic; }
+
+/* ── Quick actions ── */
+.quick-actions { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
+.qa-btn {
+  padding:5px 10px; border:1px solid var(--bdr); border-radius:5px;
+  background:var(--sur); font-family:var(--fn); font-size:11px; font-weight:500;
+  color:var(--t1); cursor:pointer; transition:all .11s;
+}
+.qa-btn:hover    { background:var(--bg); }
+.qa-btn.complete { color:var(--s); border-color:#a8d5b5; }
+.qa-btn.complete:hover { background:var(--sb); }
+.qa-btn.cancel   { color:var(--e); border-color:#f5c6c2; }
+.qa-btn.cancel:hover { background:var(--eb); }
+.qa-btn.noshow   { color:#757575; border-color:#e0e0e0; }
+.qa-btn.noshow:hover { background:#f5f5f5; }
+.qa-btn.reschedule { color:#c17700; border-color:#ffe082; }
+.qa-btn.reschedule:hover { background:var(--wb); }
+
+/* ── Clinical fields inline ── */
+.clinical-form { margin-top:10px; display:none; }
+.clinical-form.open { display:block; }
+.cf-field { margin-bottom:8px; }
+.cf-field label { font-size:11px; color:var(--t2); font-weight:500; display:block; margin-bottom:3px; }
+.cf-field textarea { width:100%; border:1.5px solid var(--bdr); border-radius:5px; padding:6px 8px; font-family:var(--fn); font-size:12px; resize:vertical; outline:none; }
+.cf-field textarea:focus { border-color:var(--p); }
+.cf-save-btn { padding:6px 14px; background:var(--s); color:#fff; border:none; border-radius:5px; font-family:var(--fn); font-size:12px; font-weight:500; cursor:pointer; }
+.cf-save-btn:hover { background:#1a7a37; }
+
+/* ── Card actions ── */
+.card-actions { display:flex; gap:5px; border-top:1px solid var(--bdr); padding-top:8px; }
+.act-btn { flex:1; padding:6px 4px; border:1px solid var(--bdr); border-radius:5px; background:var(--sur); font-family:var(--fn); font-size:11px; font-weight:500; color:var(--t1); cursor:pointer; text-align:center; transition:background .1s; }
+.act-btn:hover { background:var(--bg); }
+.act-btn.primary { color:var(--p); border-color:#c2d7fc; }
+.act-btn.primary:hover { background:var(--pl); }
+
+/* ── Day summary ── */
+.day-summary { font-size:11px; color:var(--t3); padding:4px 8px 0; margin-bottom:4px; }
+
+/* ── Toast ── */
+#toast { position:fixed; bottom:10px; left:10px; right:10px; padding:9px 13px; border-radius:8px; font-size:12px; color:#fff; text-align:center; opacity:0; transition:opacity .25s; pointer-events:none; z-index:100; font-weight:500; }
+#toast.show { opacity:1; }
+#toast.ok   { background:var(--s); }
+#toast.err  { background:var(--e); }
+#toast.warn { background:var(--w); color:#333; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="hdr" id="hdr">
+  <div class="hdr-top">
+    <h1 id="hdr-title">Today's Schedule</h1>
+    <button class="new-btn" onclick="google.script.run.openNewAppointmentForm()">+ New Appointment</button>
+  </div>
+  <!-- Stats bar -->
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s-total">—</div><div class="stat-lbl">Today</div></div>
+    <div class="stat"><div class="stat-val" id="s-done">—</div><div class="stat-lbl">Done</div></div>
+    <div class="stat"><div class="stat-val" id="s-pending">—</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat"><div class="stat-val" id="s-month">—</div><div class="stat-lbl">Month</div></div>
+  </div>
+</div>
+
+<!-- ── Date navigation ── -->
+<div class="date-nav">
+  <button class="nav-btn" onclick="shiftDate(-1)" title="Previous day">‹</button>
+  <div class="nav-date-wrap">
+    <span class="nav-date-label" id="navDateLabel">Loading…</span>
+    <span class="nav-date-sub"   id="navDateSub"></span>
+  </div>
+  <span class="today-chip" onclick="goToToday()">Today</span>
+  <input type="date" id="datePicker" onchange="goToDate(this.value)">
+  <button class="nav-btn" onclick="shiftDate(1)" title="Next day">›</button>
+</div>
+
+<!-- ── Filter chips ── -->
+<div class="filter-bar" id="filterBar">
+  <span class="filter-chip active" data-filter="All"         onclick="setFilter(this)">All</span>
+  <span class="filter-chip"        data-filter="Scheduled"   onclick="setFilter(this)">Scheduled</span>
+  <span class="filter-chip"        data-filter="Completed"   onclick="setFilter(this)">Completed</span>
+  <span class="filter-chip"        data-filter="Cancelled"   onclick="setFilter(this)">Cancelled</span>
+  <span class="filter-chip"        data-filter="Rescheduled" onclick="setFilter(this)">Rescheduled</span>
+</div>
+
+<!-- ── Appointment list ── -->
+<div id="apptList">
+  <div class="empty-state">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+let todayIso       = '';
+let currentDateIso = '';
+let currentFilter  = 'All';
+let allAppts       = [];
+
+// ── Bootstrap ─────────────────────────────────────────────────
+google.script.run
+  .withSuccessHandler(function(cfg) {
+    if (!cfg) return;
+
+    document.documentElement.style.setProperty('--p', cfg.primaryColor || '#1a73e8');
+    document.getElementById('hdr-title').textContent =
+      cfg.clinicName ? cfg.clinicName + ' — Schedule' : "Today's Schedule";
+
+    todayIso = cfg.todayIso;
+    goToDate(todayIso);
+  })
+  .getScheduleBootstrap();
+
+google.script.run
+  .withSuccessHandler(function(stats) {
+    if (!stats) return;
+    document.getElementById('s-total').textContent   = stats.todayTotal;
+    document.getElementById('s-done').textContent    = stats.todayCompleted;
+    document.getElementById('s-pending').textContent = stats.todayPending;
+    document.getElementById('s-month').textContent   = stats.thisMonth;
+  })
+  .getApptStats();
+
+
+// ── Date navigation ───────────────────────────────────────────
+function goToDate(dateIso) {
+  if (!dateIso) return;
+  currentDateIso = dateIso;
+  document.getElementById('datePicker').value = dateIso;
+  updateDateLabel(dateIso);
+  loadSchedule(dateIso);
+}
+
+function goToToday() { goToDate(todayIso); }
+
+function shiftDate(delta) {
+  if (!currentDateIso) return;
+  const d = new Date(currentDateIso + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  goToDate(d.toISOString().split('T')[0]);
+}
+
+function updateDateLabel(dateIso) {
+  const d    = new Date(dateIso + 'T00:00:00');
+  const opts = { weekday:'long', day:'numeric', month:'short', year:'numeric' };
+  document.getElementById('navDateLabel').textContent = d.toLocaleDateString('en-IN', opts);
+  const isToday = dateIso === todayIso;
+  const isTmrw  = !isToday && new Date(dateIso+'T00:00:00') > new Date(todayIso+'T00:00:00');
+  document.getElementById('navDateSub').textContent =
+    isToday ? 'Today' : isTmrw ? 'Upcoming' : 'Past';
+}
+
+
+// ── Load schedule ─────────────────────────────────────────────
+function loadSchedule(dateIso) {
+  document.getElementById('apptList').innerHTML =
+    '<div class="empty-state"><div class="loading-dots"><span></span><span></span><span></span></div></div>';
+
+  google.script.run
+    .withSuccessHandler(function(appts) {
+      allAppts = appts || [];
+      renderList();
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('apptList').innerHTML =
+        '<div class="empty-state"><div class="icon">⚠️</div><p>Failed to load: ' + e.message + '</p></div>';
+    })
+    .getScheduleForDate(dateIso);
+}
+
+
+// ── Filter ────────────────────────────────────────────────────
+function setFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = el.dataset.filter;
+  renderList();
+}
+
+
+// ── Render ────────────────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById('apptList');
+  const filtered = currentFilter === 'All'
+    ? allAppts
+    : allAppts.filter(a => a.status === currentFilter);
+
+  if (!filtered.length) {
+    const msg = allAppts.length
+      ? `No ${currentFilter === 'All' ? '' : currentFilter + ' '}appointments found.`
+      : 'No appointments scheduled for this day.';
+    list.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>${msg}</p></div>`;
+    return;
+  }
+
+  list.innerHTML =
+    `<div class="day-summary">${filtered.length} appointment${filtered.length>1?'s':''} shown</div>` +
+    filtered.map(buildCard).join('');
+}
+
+function buildCard(a) {
+  const isEditable = ['Scheduled','Rescheduled'].includes(a.status);
+
+  return `
+<div class="appt-card status-${a.status}" id="card-${a.apptId}">
+
+  <!-- ── Card head ── -->
+  <div class="card-head" onclick="toggleCard('${a.apptId}')">
+    <div class="time-badge">${esc(a.timeSlot)}</div>
+    <div class="card-info">
+      <div class="card-name">${esc(a.patientName)}</div>
+      <div class="card-meta">
+        <span class="meta-pill">${esc(a.apptType)}</span>
+        <span>Dr. ${esc(a.doctor)}</span>
+        ${a.consultationFee ? `<span>₹${a.consultationFee}</span>` : ''}
+      </div>
+    </div>
+    <div class="status-dot dot-${a.status}"></div>
+    <div class="expand-icon" id="exp-${a.apptId}">▾</div>
+  </div>
+
+  <!-- ── Card body ── -->
+  <div class="card-body" id="body-${a.apptId}">
+
+    <div class="detail-grid">
+      <div><div class="d-lbl">Patient ID</div><div class="d-val">${esc(a.patientId)}</div></div>
+      <div><div class="d-lbl">Status</div><div class="d-val">${esc(a.status)}</div></div>
+      <div><div class="d-lbl">Type</div><div class="d-val">${esc(a.apptType)}</div></div>
+      <div><div class="d-lbl">Doctor</div><div class="d-val">${esc(a.doctor)}</div></div>
+      ${a.consultationFee ? `<div><div class="d-lbl">Fee</div><div class="d-val">₹${a.consultationFee}</div></div>` : ''}
+      ${a.followUpDate    ? `<div><div class="d-lbl">Follow-Up</div><div class="d-val">${esc(a.followUpDate)}</div></div>` : ''}
+      ${a.diagnosis    ? `<div style="grid-column:1/-1"><div class="d-lbl">Diagnosis</div><div class="d-val">${esc(a.diagnosis)}</div></div>` : ''}
+      ${a.prescription ? `<div style="grid-column:1/-1"><div class="d-lbl">Prescription</div><div class="d-val">${esc(a.prescription)}</div></div>` : ''}
+      ${a.notes        ? `<div style="grid-column:1/-1"><div class="d-lbl">Notes</div><div class="d-val">${esc(a.notes)}</div></div>` : ''}
+    </div>
+
+    <!-- Quick-status buttons -->
+    ${isEditable ? `
+    <div class="quick-actions">
+      <button class="qa-btn complete"   onclick="quickStatus('${a.apptId}','Completed')">✓ Completed</button>
+      <button class="qa-btn cancel"     onclick="quickStatus('${a.apptId}','Cancelled')">✕ Cancel</button>
+      <button class="qa-btn noshow"     onclick="quickStatus('${a.apptId}','No-Show')">— No-Show</button>
+      <button class="qa-btn reschedule" onclick="quickStatus('${a.apptId}','Rescheduled')">↻ Reschedule</button>
+    </div>
+    <!-- Inline clinical notes (shown on Completed) -->
+    <div class="clinical-form" id="cf-${a.apptId}">
+      <div class="cf-field">
+        <label>Diagnosis</label>
+        <textarea id="diag-${a.apptId}" rows="2" placeholder="Diagnosis…">${esc(a.diagnosis||'')}</textarea>
+      </div>
+      <div class="cf-field">
+        <label>Prescription</label>
+        <textarea id="pres-${a.apptId}" rows="2" placeholder="Medicines, dosage…">${esc(a.prescription||'')}</textarea>
+      </div>
+      <button class="cf-save-btn" onclick="saveClinical('${a.apptId}')">Save Clinical Notes</button>
+    </div>
+    ` : ''}
+
+    <div class="card-actions">
+      <button class="act-btn primary" onclick="google.script.run.openEditAppointmentForm('${a.apptId}')">✏ Edit</button>
+      <button class="act-btn" onclick="goToRow('${a.apptId}')">↗ Go to Row</button>
+    </div>
+
+  </div>
+</div>`;
+}
+
+
+// ── Card toggle ───────────────────────────────────────────────
+function toggleCard(id) {
+  document.getElementById('body-' + id).classList.toggle('open');
+  document.getElementById('exp-' + id).classList.toggle('open');
+}
+
+
+// ── Quick status ──────────────────────────────────────────────
+function quickStatus(apptId, newStatus) {
+  if (!confirm(`Mark appointment as "${newStatus}"?`)) return;
+
+  // If marking Completed, reveal clinical form
+  if (newStatus === 'Completed') {
+    const cf = document.getElementById('cf-' + apptId);
+    if (cf) cf.classList.add('open');
+  }
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res.success) {
+        toast('✓ ' + res.message, 'ok');
+        // Refresh stats + list
+        setTimeout(function() {
+          loadSchedule(currentDateIso);
+          refreshStats();
+        }, 600);
+      } else {
+        toast(res.message, 'err');
+      }
+    })
+    .updateAppointmentStatus(apptId, newStatus, '', '');
+}
+
+
+// ── Save clinical notes ───────────────────────────────────────
+function saveClinical(apptId) {
+  const diag = document.getElementById('diag-' + apptId)?.value || '';
+  const pres = document.getElementById('pres-' + apptId)?.value || '';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      toast(res.success ? '✓ Clinical notes saved' : res.message,
+            res.success ? 'ok' : 'err');
+      if (res.success) {
+        setTimeout(() => loadSchedule(currentDateIso), 600);
+      }
+    })
+    .updateAppointmentStatus(apptId, 'Completed', diag, pres);
+}
+
+
+// ── Navigate to row ───────────────────────────────────────────
+function goToRow(apptId) {
+  google.script.run
+    .withSuccessHandler(() => toast('Navigated to ' + apptId, 'ok'))
+    .navigateToApptRow(apptId);
+}
+
+
+// ── Refresh stats ─────────────────────────────────────────────
+function refreshStats() {
+  google.script.run
+    .withSuccessHandler(function(stats) {
+      if (!stats) return;
+      document.getElementById('s-total').textContent   = stats.todayTotal;
+      document.getElementById('s-done').textContent    = stats.todayCompleted;
+      document.getElementById('s-pending').textContent = stats.todayPending;
+      document.getElementById('s-month').textContent   = stats.thisMonth;
+    })
+    .getApptStats();
+}
+
+
+// ── Utilities ─────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => { t.className = ''; }, 3200);
+}
+</script>
+</body>
+</html>

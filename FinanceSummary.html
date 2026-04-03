@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base target="_top">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#1a73e8;--pl:#e8f0fe;
+  --s:#1e8e3e;--sb:#e6f4ea;
+  --e:#d93025;--eb:#fce8e6;
+  --bg:#f8f9fa;--sur:#fff;--bdr:#dadce0;
+  --t1:#202124;--t2:#5f6368;--t3:#9aa0a6;
+  --fn:'Google Sans',Roboto,Arial,sans-serif;
+}
+body{font-family:var(--fn);font-size:13px;color:var(--t1);background:var(--bg)}
+.hdr{background:linear-gradient(135deg,#1a73e8,#0d47a1);color:#fff;padding:16px;position:sticky;top:0;z-index:10}
+.hdr h1{font-size:15px;font-weight:500;margin-bottom:2px}
+.hdr p{font-size:11px;opacity:.82}
+
+/* Period selector */
+.period-bar{display:flex;gap:4px;padding:10px;background:var(--sur);border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.period-btn{padding:5px 12px;border:1.5px solid var(--bdr);border-radius:14px;font-family:var(--fn);font-size:11px;font-weight:500;color:var(--t2);background:var(--sur);cursor:pointer;transition:all .12s}
+.period-btn:hover{border-color:var(--p);color:var(--p)}
+.period-btn.active{background:var(--p);border-color:var(--p);color:#fff}
+
+/* Main KPI cards */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+.kpi-card{border-radius:8px;padding:12px 14px;border:1px solid var(--bdr)}
+.kpi-label{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:600;line-height:1}
+.kpi-sub{font-size:11px;margin-top:4px;opacity:.75}
+
+.kpi-rev{background:var(--sb);border-color:#a8d5b5}.kpi-rev .kpi-label{color:var(--s)}.kpi-rev .kpi-value{color:var(--s)}
+.kpi-exp{background:var(--eb);border-color:#f5c6c2}.kpi-exp .kpi-label{color:var(--e)}.kpi-exp .kpi-value{color:var(--e)}
+.kpi-profit.positive{background:#e8f5e9;border-color:#a5d6a7}.kpi-profit.positive .kpi-label{color:#2e7d32}.kpi-profit.positive .kpi-value{color:#2e7d32}
+.kpi-profit.negative{background:var(--eb);border-color:#f5c6c2}.kpi-profit.negative .kpi-label{color:var(--e)}.kpi-profit.negative .kpi-value{color:var(--e)}
+.kpi-margin{background:var(--pl);border-color:#c2d7fc}.kpi-margin .kpi-label{color:var(--p)}.kpi-margin .kpi-value{color:var(--p)}
+
+/* Divider */
+.section-hdr{font-size:10px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:var(--t3);padding:10px 14px 4px}
+
+/* Bar chart rows */
+.bar-row{padding:6px 14px}
+.bar-label-row{display:flex;justify-content:space-between;margin-bottom:4px}
+.bar-name{font-size:12px;color:var(--t1);font-weight:500}
+.bar-val{font-size:12px;font-weight:600;color:var(--t1)}
+.bar-track{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.bar-fill.rev{background:var(--s)}
+.bar-fill.exp{background:var(--e)}
+
+/* Loading spinner */
+.spinner-wrap{text-align:center;padding:40px;color:var(--t3)}
+.ld{display:inline-flex;gap:4px}
+.ld span{width:7px;height:7px;border-radius:50%;background:var(--p);animation:bounce .75s ease-in-out infinite}
+.ld span:nth-child(2){animation-delay:.15s}
+.ld span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+.period-label{text-align:center;font-size:11px;color:var(--t2);padding:4px 0 0;font-weight:500}
+.refresh-btn{display:block;margin:8px auto 14px;padding:6px 16px;background:var(--pl);border:1px solid #c2d7fc;border-radius:5px;font-family:var(--fn);font-size:11px;font-weight:500;color:var(--p);cursor:pointer}
+.refresh-btn:hover{background:#d2e3fc}
+.empty{text-align:center;padding:20px;color:var(--t3);font-size:12px}
+.count-row{display:flex;gap:6px;padding:0 14px 8px;flex-wrap:wrap}
+.count-chip{font-size:11px;background:var(--bg);border:1px solid var(--bdr);border-radius:12px;padding:3px 10px;color:var(--t2)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>Finance Summary</h1>
+  <p id="hdr-sub">Loading…</p>
+</div>
+
+<!-- Period selector -->
+<div class="period-bar">
+  <button class="period-btn" onclick="load('today',this)">Today</button>
+  <button class="period-btn" onclick="load('week',this)">This Week</button>
+  <button class="period-btn active" onclick="load('month',this)">This Month</button>
+  <button class="period-btn" onclick="load('year',this)">This Year</button>
+</div>
+
+<div id="content">
+  <div class="spinner-wrap"><div class="ld"><span></span><span></span><span></span></div></div>
+</div>
+
+<script>
+let currency = '₹';
+
+google.script.run.withSuccessHandler(function(cfg) {
+  if (!cfg) return;
+  currency = cfg.currency || '₹';
+  document.getElementById('hdr-sub').textContent = cfg.clinicName + ' — Profit & Loss';
+  load('month', document.querySelector('.period-btn.active'));
+}).getFinanceBootstrap();
+
+function load(period, btn) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  document.getElementById('content').innerHTML =
+    '<div class="spinner-wrap"><div class="ld"><span></span><span></span><span></span></div></div>';
+
+  google.script.run
+    .withSuccessHandler(render)
+    .withFailureHandler(e => {
+      document.getElementById('content').innerHTML =
+        '<div class="empty">Error loading data: ' + e.message + '</div>';
+    })
+    .calculateProfit(period);
+}
+
+function render(d) {
+  if (!d || !d.success) {
+    document.getElementById('content').innerHTML = '<div class="empty">No data available.</div>';
+    return;
+  }
+
+  const isProfit = d.grossProfit >= 0;
+  const profitCls = isProfit ? 'positive' : 'negative';
+
+  // Build revenue breakdown bars
+  const revEntries = Object.entries(d.revenueByType || {}).sort((a,b)=>b[1]-a[1]);
+  const expEntries = Object.entries(d.expenseByCategory || {}).sort((a,b)=>b[1]-a[1]);
+  const payEntries = Object.entries(d.byPaymentMode || {}).sort((a,b)=>b[1]-a[1]);
+
+  const maxRev = revEntries.length ? Math.max(...revEntries.map(e=>e[1])) : 1;
+  const maxExp = expEntries.length ? Math.max(...expEntries.map(e=>e[1])) : 1;
+
+  document.getElementById('content').innerHTML = `
+    <div class="period-label">${esc(d.period)}</div>
+    <div class="count-row">
+      <span class="count-chip">${d.saleCount} sales</span>
+      <span class="count-chip">${d.expenseCount} expenses</span>
+    </div>
+
+    <!-- Main KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-rev">
+        <div class="kpi-label">Revenue</div>
+        <div class="kpi-value">${currency}${fmt(d.revenue)}</div>
+        <div class="kpi-sub">${d.saleCount} sale${d.saleCount!==1?'s':''}</div>
+      </div>
+      <div class="kpi-card kpi-exp">
+        <div class="kpi-label">Expenses</div>
+        <div class="kpi-value">${currency}${fmt(d.expenses)}</div>
+        <div class="kpi-sub">${d.expenseCount} expense${d.expenseCount!==1?'s':''}</div>
+      </div>
+      <div class="kpi-card kpi-profit ${profitCls}">
+        <div class="kpi-label">${isProfit ? 'Net Profit' : 'Net Loss'}</div>
+        <div class="kpi-value">${isProfit?'':'-'}${currency}${fmt(Math.abs(d.grossProfit))}</div>
+        <div class="kpi-sub">${isProfit ? 'In the green' : 'Expenses exceed revenue'}</div>
+      </div>
+      <div class="kpi-card kpi-margin">
+        <div class="kpi-label">Profit Margin</div>
+        <div class="kpi-value">${d.margin}%</div>
+        <div class="kpi-sub">Of total revenue</div>
+      </div>
+    </div>
+
+    <!-- Revenue by type -->
+    ${revEntries.length ? `
+    <div class="section-hdr">Revenue by item type</div>
+    ${revEntries.map(([name,val])=>`
+      <div class="bar-row">
+        <div class="bar-label-row">
+          <span class="bar-name">${esc(name)}</span>
+          <span class="bar-val">${currency}${fmt(val)}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill rev" style="width:${Math.round(val/maxRev*100)}%"></div>
+        </div>
+      </div>`).join('')}` : ''}
+
+    <!-- Expense by category -->
+    ${expEntries.length ? `
+    <div class="section-hdr">Expenses by category</div>
+    ${expEntries.map(([name,val])=>`
+      <div class="bar-row">
+        <div class="bar-label-row">
+          <span class="bar-name">${esc(name)}</span>
+          <span class="bar-val">${currency}${fmt(val)}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill exp" style="width:${Math.round(val/maxExp*100)}%"></div>
+        </div>
+      </div>`).join('')}` : ''}
+
+    <!-- Payment mode -->
+    ${payEntries.length ? `
+    <div class="section-hdr">Revenue by payment mode</div>
+    <div class="count-row">
+      ${payEntries.map(([mode,val])=>
+        `<span class="count-chip">${esc(mode)}: ${currency}${fmt(val)}</span>`
+      ).join('')}
+    </div>` : ''}
+
+    <button class="refresh-btn" onclick="load(currentPeriod(), document.querySelector('.period-btn.active'))">↻ Refresh</button>
+  `;
+}
+
+function currentPeriod() {
+  const active = document.querySelector('.period-btn.active');
+  if (!active) return 'month';
+  const map = { 'Today':'today','This Week':'week','This Month':'month','This Year':'year' };
+  return map[active.textContent] || 'month';
+}
+
+function fmt(n) { return Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
