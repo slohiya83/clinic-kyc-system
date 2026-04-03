@@ -1112,7 +1112,7 @@ async function submitForm() {
     const response = await fetch(CONFIG.apiUrl, {
       method  : 'POST',
       redirect: 'follow',
-      headers : { 'Content-Type': 'application/json' },
+      
       body    : JSON.stringify(payload),
     });
 
